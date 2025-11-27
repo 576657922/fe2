@@ -1,5 +1,40 @@
 # 项目架构与文件说明 (Architecture & File Structure)
 
+## 当前实现进度
+
+### ✅ 已实现的完整基础设施（步骤 1.1-1.10 及 2.1-2.2 完成 - 15/47 步骤）
+
+#### 前端框架和工具链
+- ✅ **Next.js 14** - 全栈 React 框架，支持 App Router、API Routes、Server Components
+- ✅ **TypeScript 5** - 全链路类型安全，编译时类型检查
+- ✅ **Tailwind CSS 3** - 原子化 CSS，快速构建响应式界面
+- ✅ **shadcn/ui** - 6 个基础组件库（Button, Card, Input, Label, Progress, AlertDialog）
+
+#### 状态管理和数据处理
+- ✅ **Zustand 5** - 轻量级状态管理库，用于番茄钟和做题状态
+- ✅ **Supabase Client** - PostgreSQL + Auth + Realtime 的完整解决方案
+- ✅ **TypeScript 类型** - 完整的数据类型定义（Profile, Question, UserProgress, QuestionAttempt, Bookmark, FocusSession）
+
+#### 动画和数据可视化
+- ✅ **Framer Motion** - 高性能 React 动画库，用于升级提示、过渡动画
+- ✅ **Recharts** - 声明式 React 图表库，用于统计数据可视化
+- ✅ **Lucide React** - 1000+ 精美图标库
+
+#### 核心配置文件
+- ✅ `.env.local` - Supabase 环境变量配置（NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY）
+- ✅ `lib/supabase.ts` - Supabase 客户端单例模式初始化
+- ✅ `lib/types.ts` - 全局 TypeScript 类型定义
+- ✅ `lib/utils.ts` - 样式合并工具（cn）和通用工具函数
+- ✅ `components.json` - shadcn/ui 配置文件
+
+#### 数据库基础设施
+- ✅ **Supabase PostgreSQL** - 6 个核心业务表
+- ✅ **Row Level Security (RLS)** - 所有用户表启用行级安全
+- ✅ **数据库索引** - 为查询优化创建了复合索引和单列索引
+- ✅ **认证系统** - Email + GitHub OAuth 双重认证配置完成
+
+---
+
 ## 项目根目录文件说明
 
 ### 文档文件（memory-bank 文件夹内）
@@ -125,19 +160,32 @@ fe2/
 │   ├── auth/
 │   │   ├── LoginForm.tsx         # 登录表单逻辑
 │   │   └── RegisterForm.tsx      # 注册表单逻辑
-│   └── ui/                       # shadcn/ui 组件（自动生成）
-│       ├── button.tsx
-│       ├── card.tsx
-│       ├── input.tsx
-│       └── ...其他 shadcn 组件
+│   └── ui/                       # shadcn/ui 组件（已实现 6 个基础组件）
+│       ├── button.tsx            # ✅ 按钮组件 - 多种变体（default, destructive, outline, secondary, ghost, link）
+│       ├── card.tsx              # ✅ 卡片组件 - Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent
+│       ├── input.tsx             # ✅ 输入框组件 - 文本输入元素
+│       ├── label.tsx             # ✅ 标签组件 - 表单标签
+│       ├── progress.tsx          # ✅ 进度条组件 - 显示做题进度、升级进度
+│       ├── alert-dialog.tsx      # ✅ 警告对话框 - 确认对话框、警告提示
+│       └── ...待后续添加的组件  # Select, Textarea, Dialog, Tooltip 等
 │
 ├── lib/                          # 工具函数和配置
-│   ├── supabase.ts               # Supabase 客户端 - 单例模式，全局复用
-│   ├── types.ts                  # TypeScript 类型定义 - Profile, Question, UserProgress 等
-│   └── utils.ts                  # 通用工具函数
-│       ├── calculateLevel()       # 根据 XP 计算等级
-│       ├── getXpForNextLevel()   # 获取下一级所需 XP
-│       ├── formatTime()          # 格式化时间
+│   ├── supabase.ts               # ✅ Supabase 客户端 - 单例模式，全局复用
+│   │   └── createClient() 调用  # 初始化 Supabase 实例，从 .env.local 读取凭证
+│   ├── types.ts                  # ✅ TypeScript 类型定义 - 8 个核心类型
+│   │   ├── Profile              # 用户档案
+│   │   ├── Question             # 题库题目
+│   │   ├── UserProgress         # 做题进度汇总
+│   │   ├── QuestionAttempt      # 做题历史记录
+│   │   ├── Bookmark             # 书签
+│   │   ├── FocusSession         # 番茄钟会话
+│   │   ├── ApiResponse<T>       # API 统一响应格式
+│   │   └── AuthUser             # 登录用户信息
+│   └── utils.ts                  # ✅ 通用工具函数
+│       ├── cn()                  # Tailwind CSS 类名合并（clsx + twMerge）
+│       ├── calculateLevel()      # 待实现：根据 XP 计算等级
+│       ├── getXpForNextLevel()  # 待实现：获取下一级所需 XP
+│       ├── formatTime()         # 待实现：格式化时间
 │       └── ...其他工具函数
 │
 ├── store/                        # Zustand 状态管理
@@ -173,6 +221,25 @@ fe2/
 ---
 
 ## 数据库表设计说明
+
+### 数据库表总览
+
+| 表名 | 用途 | 行数预估 | RLS | 关键索引 | 关键字段 |
+|------|------|---------|-----|---------|---------|
+| `auth.users` | 用户身份认证（Supabase 管理） | 少 | 内置 | email | id, email |
+| `profiles` | 用户档案、等级、XP、连击 | 少 | ✅ | user_id | id, level, xp |
+| `questions` | 题库题目 | 多（几千） | ✗ | year, category | id, content, correct_answer |
+| `user_progress` | 做题统计（核心汇总表） | 中-多 | ✅ | (user_id, question_id) | status, consecutive_correct_count |
+| `question_attempts` | 做题历史记录 | 很多（每做一题+1） | ✅ | (user_id, question_id, created_at) | user_answer, is_correct |
+| `bookmarks` | 用户书签 | 中 | ✅ | user_id | user_id, question_id |
+| `focus_sessions` | 番茄钟会话 | 中 | ✅ | (user_id, created_at) | started_at, ended_at, duration |
+
+**说明**：
+- **RLS**：行级安全，用户只能访问自己的数据
+- **关键索引**：用于优化查询性能的索引
+- **双表设计**：`user_progress` + `question_attempts` 的组合设计便于快速统计和历史追踪
+
+---
 
 ### Supabase PostgreSQL 数据库
 
@@ -221,24 +288,59 @@ fe2/
 ---
 
 #### 4. `user_progress`
-**用途**：用户做题记录（核心数据表）
+**用途**：用户做题记录（核心数据表，汇总统计）
 **字段说明**：
 - `id` (UUID, PK): 记录唯一标识
 - `user_id` (UUID, FK): 关联 auth.users
 - `question_id` (UUID, FK): 关联 questions
-- `user_answer` (text): 用户选择的答案（"A", "B", "C", "D"）
-- `is_correct` (boolean): 是否答对
-- `attempt_count` (int): 此题做过的次数
+- `user_answer` (text): 用户最后一次的答案（"A", "B", "C", "D"）
+- `is_correct` (boolean): 最后一次是否答对
+- `attempt_count` (int): 此题做过的总次数
+- `consecutive_correct_count` (int): 连续答对次数（达到 3 次时自动标记为已掌握）
 - `status` (text): 题目状态（"normal", "wrong_book", "mastered"）
-  - `normal`: 普通状态（对的题目）
-  - `wrong_book`: 在错题本中
-  - `mastered`: 已掌握（从错题本移出）
+  - `normal`: 普通状态（最后答对或首次做题）
+  - `wrong_book`: 在错题本中（答过但最后答错）
+  - `mastered`: 已掌握（连续答对 3 次或手动标记）
 - `last_attempt_at` (timestamp): 最后一次做题的时间
 - `created_at`: 首次做题时间
 
+**索引**：
+- (user_id, question_id) 唯一组合索引
+- user_id 索引（快速查询用户的所有题目）
+- status 索引（快速筛选错题）
+
 **RLS 策略**：用户只能查看/修改自己的记录
 
-**说明**：这是最重要的数据表，记录了用户的所有做题数据，支持错题本、进度统计等功能。
+**说明**：
+- 这是最重要的汇总统计表，记录了用户对每道题目的最新做题情况
+- 与 `question_attempts` 配合使用（双表设计）
+- 用于快速统计用户的做题数量、正确率、错题本等
+- `consecutive_correct_count` 字段用于追踪连续答对，实现智能掌握判定
+
+---
+
+#### 4.5. `question_attempts`（✅ 新增）
+**用途**：用户做题历史追踪表（详细历史记录）
+**字段说明**：
+- `id` (UUID, PK): 历史记录唯一标识
+- `user_id` (UUID, FK): 关联 auth.users
+- `question_id` (UUID, FK): 关联 questions
+- `user_answer` (text): 本次的答案（"A", "B", "C", "D"）
+- `is_correct` (boolean): 本次是否答对
+- `pomodoro_session_id` (UUID, FK): 关联 focus_sessions（可选，用于关联番茄钟）
+- `created_at` (timestamp): 做题的时间戳
+
+**索引**：
+- user_id 索引（快速查询用户历史）
+- (user_id, question_id, created_at) 复合索引（快速查询某用户某题的历史）
+
+**RLS 策略**：用户只能查看/插入/删除自己的记录
+
+**说明**：
+- 与 `user_progress` 配合使用，构成双表设计
+- 每次做题都会插入一条新记录，保留完整的学习轨迹
+- 用于数据分析、学习曲线追踪、番茄统计等高级功能
+- 不修改历史数据，只插入新记录，确保数据完整性
 
 ---
 
@@ -256,8 +358,36 @@ fe2/
 
 ---
 
-#### 6. `focus_logs`（非必需，用于高级功能）
-**用途**：番茄钟记录
+#### 5.5. `focus_sessions`（✅ 新增）
+**用途**：番茄钟会话记录（精确的学习时间追踪）
+**字段说明**：
+- `id` (UUID, PK): 会话唯一标识
+- `user_id` (UUID, FK): 关联 auth.users
+- `started_at` (timestamp): 会话开始时间
+- `ended_at` (timestamp, nullable): 会话结束时间（未完成时为 null）
+- `duration` (int): 预计时长（秒，通常 1500 = 25 分钟）
+- `goal_description` (text, nullable): 学习目标描述（如"刷题 20 题"）
+- `created_at` (timestamp): 会话创建时间
+
+**索引**：
+- user_id 索引（快速查询用户的番茄历史）
+- (user_id, created_at) 复合索引（快速查询用户某时间段的会话）
+
+**RLS 策略**：用户只能查看/修改自己的会话
+
+**与其他表的关系**：
+- `question_attempts.pomodoro_session_id` FK 关联此表
+- 番茄结束时，可通过 `question_attempts` 统计本次完成的题数和正确数
+
+**说明**：
+- 精确追踪用户的番茄钟使用情况
+- 保留了完整的开始/结束时间，便于分析学习习惯
+- 与 `question_attempts` 联动，可分析"这个番茄钟中做了哪些题"
+
+---
+
+#### 6. `focus_logs`（可选，用于简化统计）
+**用途**：番茄钟统计记录（高层聚合数据）
 **字段说明**：
 - `id` (UUID, PK): 记录唯一标识
 - `user_id` (UUID, FK): 关联 auth.users
@@ -266,7 +396,10 @@ fe2/
 - `correct_count` (int): 本次正确的题目数
 - `created_at` (timestamp): 完成时间
 
-**用途**：跟踪用户的番茄钟使用情况，用于分析学习习惯。
+**说明**：
+- 这是从 `focus_sessions` + `question_attempts` 汇总而来的统计表
+- MVP 版本可以不创建此表，改用联表查询即可
+- 如果统计计算变慢，可后续添加此表进行优化
 
 ---
 

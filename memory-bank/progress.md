@@ -3,69 +3,80 @@
 ## 阶段 1：基础设施与数据库
 
 ### 步骤 1.1：初始化 Next.js 项目
-- [ ] 执行 create-next-app 命令
-- [ ] 验证项目结构
-- [ ] 验证页面加载时间 ≤ 2 秒
-- [ ] 验证浏览器控制台无 TypeScript 错误
+- [x] 执行 create-next-app 命令
+- [x] 验证项目结构
+- [x] 验证页面加载时间 ≤ 2 秒
+- [x] 验证浏览器控制台无 TypeScript 错误
 
 ### 步骤 1.2：安装核心依赖包
-- [ ] 安装 @supabase/supabase-js 等库
-- [ ] 验证 package.json 中所有依赖
-- [ ] 验证项目能正常启动
+- [x] 安装 @supabase/supabase-js 等库
+- [x] 验证 package.json 中所有依赖
+- [x] 验证项目能正常启动
 
 ### 步骤 1.3：安装并初始化 shadcn/ui 组件库
-- [ ] 执行 shadcn-ui init 命令
-- [ ] 验证 components/ui/ 目录生成
-- [ ] 验证项目正常启动
+- [x] 执行 shadcn-ui init 命令（手动创建）
+- [x] 验证 components/ui/ 目录生成
+- [x] 验证项目正常启动
+- [x] 添加基础组件：button, card, input, label, progress, alert-dialog
 
 ### 步骤 1.4：创建 Supabase 项目
-- [ ] 在 Supabase 上创建项目
-- [ ] 获取 Project URL
-- [ ] 获取 anon public API Key
+- [x] 在 Supabase 上创建项目
+- [x] 获取 Project URL
+- [x] 获取 anon public API Key
 
 ### 步骤 1.5：配置项目的 Supabase 环境变量
-- [ ] 创建 .env.local 文件
-- [ ] 添加环境变量
-- [ ] 验证环境变量正确
+- [x] 创建 .env.local 文件
+- [x] 添加环境变量
+- [x] 验证环境变量正确
 
 ### 步骤 1.6：创建 profiles 表（用户表）
-- [ ] 在 Supabase 中创建表
-- [ ] 添加所有字段和约束
-- [ ] 启用 RLS
+- [x] 在 Supabase 中创建表
+- [x] 添加所有字段和约束
+- [x] 启用 RLS
 
 ### 步骤 1.7：创建 questions 表（题库表）
-- [ ] 创建表结构
-- [ ] 创建索引
-- [ ] 验证表和索引
+- [x] 创建表结构
+- [x] 创建索引
+- [x] 验证表和索引
 
 ### 步骤 1.8：创建 user_progress 表（做题记录表）
-- [ ] 创建表结构
-- [ ] 添加组合索引
-- [ ] 启用 RLS
+- [x] 创建表结构
+- [x] 添加组合索引
+- [x] 启用 RLS
+
+### 步骤 1.8b：创建 question_attempts 表（作答历史表）
+- [x] 创建表结构
+- [x] 添加复合索引
+- [x] 启用 RLS
 
 ### 步骤 1.9：创建 bookmarks 表（书签表）
-- [ ] 创建表结构
-- [ ] 添加唯一约束
-- [ ] 启用 RLS
+- [x] 创建表结构
+- [x] 添加唯一约束
+- [x] 启用 RLS
+
+### 步骤 1.9b：创建 focus_sessions 表（番茄钟会话表）
+- [x] 创建表结构
+- [x] 创建索引
+- [x] 启用 RLS
 
 ### 步骤 1.10：设置 Supabase Auth 认证方式
-- [ ] 启用 Email 提供商
-- [ ] 配置 GitHub OAuth
-- [ ] 验证认证配置
+- [x] 启用 Email 提供商
+- [x] 配置 GitHub OAuth
+- [x] 验证认证配置
 
 ---
 
 ## 阶段 2：核心题库与做题流程
 
 ### 步骤 2.1：创建 Supabase 客户端初始化文件
-- [ ] 创建 lib/supabase.ts
-- [ ] 初始化 Supabase 客户端
-- [ ] 验证导入无误
+- [x] 创建 lib/supabase.ts
+- [x] 初始化 Supabase 客户端
+- [x] 验证导入无误
 
 ### 步骤 2.2：创建全局 TypeScript 类型定义文件
-- [ ] 创建 lib/types.ts
-- [ ] 定义所有数据类型
-- [ ] 验证类型检查通过
+- [x] 创建 lib/types.ts
+- [x] 定义所有数据类型
+- [x] 验证类型检查通过
 
 ### 步骤 2.3：导入示例题目数据到 Supabase
 - [ ] 准备题目数据
@@ -268,6 +279,63 @@
 ### 数据安全
 - [ ] RLS 策略生效
 - [ ] 用户隐私保护
+
+---
+
+## 当前进度总结
+
+### 已完成的步骤（15/47）
+- ✅ **步骤 1.1-1.5**：Next.js 项目初始化、依赖安装、shadcn/ui 设置、Supabase 项目创建、环境变量配置
+- ✅ **步骤 1.6-1.10**：完整的数据库表结构创建（profiles, questions, user_progress, question_attempts, bookmarks, focus_sessions）、RLS 安全策略、Auth 认证方式配置
+- ✅ **步骤 2.1-2.2**：Supabase 客户端初始化、TypeScript 类型定义
+
+### 已完成的工作总结
+
+#### 阶段 1：基础设施与数据库（✅ 100% 完成）
+
+**前端基础架构**
+- ✅ Next.js 14 + TypeScript + Tailwind CSS 项目框架
+- ✅ 6 个基础 shadcn/ui 组件（Button, Card, Input, Label, Progress, AlertDialog）
+- ✅ Supabase 客户端配置（lib/supabase.ts）
+- ✅ 完整的 TypeScript 类型定义（lib/types.ts）
+- ✅ 环境变量配置（.env.local）
+
+**数据库设计与实现**
+- ✅ `profiles` 表：用户档案、等级、经验值、连击记录（RLS 策略已启用）
+- ✅ `questions` 表：题库（year, category 索引优化）
+- ✅ `user_progress` 表：做题统计数据（user_id + question_id 唯一约束，RLS 已启用）
+- ✅ `question_attempts` 表：做题历史追踪（保留完整学习轨迹，复合索引优化）
+- ✅ `bookmarks` 表：用户书签管理（唯一约束防重复，RLS 已启用）
+- ✅ `focus_sessions` 表：番茄钟会话记录（RLS 已启用）
+- ✅ 所有表启用 RLS（行级安全），确保用户隐私
+
+**认证系统**
+- ✅ Email 邮箱登录提供商启用
+- ✅ GitHub OAuth 第三方认证配置完成
+
+#### 已安装的关键依赖
+- @supabase/supabase-js - 数据库和认证
+- zustand - 状态管理
+- framer-motion - 动画库
+- recharts - 数据可视化
+- lucide-react - 图标库
+- @radix-ui/* - UI 基础组件库
+- class-variance-authority - 组件变体
+- clsx + tailwind-merge - 样式工具
+
+### 后续计划
+- 阶段 2：核心题库与做题流程（2.3-2.12）
+  - 导入示例题目数据到 questions 表
+  - 创建登录/注册页面和功能实现
+  - 创建题库浏览、做题、答案提交流程
+- 阶段 3：错题本与进度记录（3.1-3.9）
+  - 错题本 API 端点和页面实现
+  - 标记掌握功能开发
+  - 书签功能完整实现
+- 阶段 4：番茄钟与基础统计（4.1-4.10）
+  - Pomodoro 状态管理和计时器组件
+  - XP 和等级系统实现
+  - 数据统计和可视化图表
 
 ---
 
