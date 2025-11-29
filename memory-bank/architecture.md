@@ -509,3 +509,515 @@ A: 在 questions 表添加 `exam_type` 字段区分 FE/AP，所有查询添加 `
 
 ---
 
+
+---
+
+## 步骤 2.1：Supabase 客户端初始化文件 - 架构洞察
+
+### 实现目的
+创建一个可复用的 Supabase 客户端实例，作为应用与数据库的通信桥梁。该文件遵循单例模式，确保全局只有一个客户端实例。
+
+### 文件结构
+
+**文件位置**: `lib/supabase.ts`
+
+**核心内容**:
+```typescript
+// 1. 导入 Supabase 客户端创建函数
+import { createClient } from "@supabase/supabase-js";
+
+// 2. 从环境变量读取连接信息
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// 3. 验证环境变量（防止配置缺失导致的运行时错误）
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Missing Supabase credentials...");
+}
+
+// 4. 创建并导出单例客户端
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+```
+
+### 关键设计决策
+
+#### 1. 单例模式（Singleton Pattern）
+- **为什么**：Supabase 客户端是无状态的连接器，无需多个实例
+- **好处**：
+  - 节省内存（全局只有一个实例）
+  - 统一的连接管理
+  - 避免重复认证
+  - 便于测试（可直接 mock 单例对象）
+- **实现方法**：通过 ES6 `export` 导出一个预创建的实例
+
+#### 2. 环境变量验证
+- **为什么**：开发过程中容易忘记配置 `.env.local`
+- **好处**：
+  - 在构建时而非运行时发现配置问题
+  - 提供明确的错误提示
+  - 防止访问 undefined 导致的隐蔽错误
+- **实现方法**：在模块加载时检查环境变量，缺失则抛出 Error
+
+#### 3. 公开 API Key（NEXT_PUBLIC_ 前缀）
+- **为什么**：Supabase 的 anon key 设计为客户端可用
+- **安全保证**：
+  - RLS（行级安全）在数据库层保护数据
+  - Anon key 权限受限（只能做认证允许的操作）
+  - 不应该在环境变量中存放 service_role_key（这个要保密）
+- **实现方法**：使用 NEXT_PUBLIC_ 前缀，使其在客户端 JavaScript 中可访问
+
+### 使用场景
+
+#### 场景 1：在 API 路由中查询数据
+```typescript
+// app/api/answers/route.ts
+import { supabase } from "@/lib/supabase";
+
+export async function POST(request: Request) {
+  const { userId, questionId, answer } = await request.json();
+  
+  // 使用 supabase 客户端查询或插入数据
+  const { data, error } = await supabase
+    .from("user_progress")
+    .insert({ user_id: userId, question_id: questionId, user_answer: answer });
+  
+  return Response.json({ success: !error });
+}
+```
+
+#### 场景 2：在客户端组件中获取认证用户
+```typescript
+// components/UserProfile.tsx
+import { supabase } from "@/lib/supabase";
+
+export function UserProfile() {
+  const [user, setUser] = useState(null);
+  
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+    });
+  }, []);
+  
+  return <div>{user?.email}</div>;
+}
+```
+
+#### 场景 3：监听实时数据更新
+```typescript
+// Realtime subscription
+const channel = supabase
+  .channel('user-progress')
+  .on('postgres_changes', 
+    { event: 'INSERT', schema: 'public', table: 'user_progress' },
+    (payload) => console.log('New progress:', payload)
+  )
+  .subscribe();
+```
+
+### 与 lib/types.ts 的关联
+
+虽然 `lib/supabase.ts` 只创建客户端，但它与 `lib/types.ts` 密切相关：
+
+| 文件 | 职责 | 关系 |
+|-----|------|------|
+| `lib/supabase.ts` | 创建数据库连接 | 提供 Supabase 操作入口 |
+| `lib/types.ts` | 定义 TypeScript 类型 | 为 Supabase 数据定义结构 |
+
+**协作示例**：
+```typescript
+// 导入类型和客户端
+import { supabase } from "@/lib/supabase";
+import type { Question, UserProgress } from "@/lib/types";
+
+// 查询返回 Question[] 类型
+const { data: questions } = await supabase
+  .from("questions")
+  .select("*") as { data: Question[] };
+
+// 插入 UserProgress 类型的数据
+await supabase.from("user_progress").insert(userProgress as UserProgress);
+```
+
+### 依赖关系
+
+| 库 | 用途 | 版本 |
+|----|------|------|
+| @supabase/supabase-js | 核心客户端库 | ^2.0+ |
+
+### 后续扩展点
+
+1. **添加中间件验证**：如需在每次请求前验证用户身份
+2. **错误处理封装**：创建 `lib/supabaseHelper.ts` 封装常见错误处理
+3. **缓存层**：集成 SWR 或 React Query 进行客户端缓存
+4. **实时数据**：使用 Supabase Realtime 功能监听数据变更
+
+### 与其他 lib 文件的协作流程
+
+```
+用户请求
+    ↓
+API Route (app/api/*/route.ts)
+    ↓
+[导入 supabase 客户端] → lib/supabase.ts
+    ↓
+[使用类型进行操作] → lib/types.ts
+    ↓
+Supabase PostgreSQL 数据库
+    ↓
+返回响应给客户端
+```
+
+### 总结
+
+`lib/supabase.ts` 虽然代码很简洁（仅 12 行），但作用关键：
+- 它是应用与数据库通信的唯一入口
+- 确保全局使用同一个连接实例
+- 提供类型安全的基础（配合 lib/types.ts）
+- 支持后续的认证、RLS、实时数据等高级功能
+
+此文件需要在其他任何 Supabase 操作之前创建和验证。
+
+---
+
+## 步骤 2.2：全局 TypeScript 类型定义文件 - 架构洞察
+
+### 实现目的
+定义应用范围内的所有数据类型，提供编译时的类型检查，确保代码类型安全，并为开发者提供自动完成和文档支持。
+
+### 文件结构
+
+**文件位置**: `lib/types.ts`
+
+**核心内容**：8 个接口 + 多个 union types
+
+```typescript
+// 用户相关
+export interface Profile { ... }        // 用户档案
+export interface AuthUser { ... }       // 认证用户
+
+// 题目相关
+export interface Question { ... }       // 题目数据
+
+// 做题相关
+export interface UserProgress { ... }   // 做题统计
+export interface QuestionAttempt { ... }  // 做题历史
+
+// 功能相关
+export interface Bookmark { ... }       // 书签
+export interface FocusSession { ... }   // 番茄钟会话
+
+// API 相关
+export interface ApiResponse<T> { ... } // 统一响应格式
+```
+
+### 8 个核心接口详解
+
+#### 1. Profile（用户档案）
+```typescript
+interface Profile {
+  id: string;                    // 用户 ID（Supabase auth）
+  username: string;              // 用户名
+  level: number;                 // 当前等级
+  xp: number;                    // 总经验值
+  streak_days: number;           // 连续答对天数
+  created_at: string;            // 创建时间
+  updated_at: string;            // 更新时间
+}
+```
+**用途**: 存储用户的基本信息和游戏化数据（等级、XP）
+**更新场景**: 用户升级、XP 增加、连击计数时更新
+
+#### 2. Question（题目数据）
+```typescript
+interface Question {
+  id: string;                    // 题目 ID
+  year: string;                  // 年份（如 "2023"）
+  session: "AM" | "PM";          // 上午或下午场次
+  category: string;              // 类别（如 "Fundamentals"）
+  question_number: number;       // 题号
+  content: string;               // 题干
+  option_a/b/c/d: string;       // 四个选项
+  correct_answer: "A"|"B"|"C"|"D";  // 正确答案
+  explanation: string;           // 解析
+  difficulty: "easy"|"normal"|"hard";  // 难度
+  created_at: string;            // 创建时间
+}
+```
+**用途**: 存储题库中的题目信息
+**特点**: 不可变（后端只读，前端不修改）
+**查询优化**: year 和 category 字段有索引
+
+#### 3. UserProgress（做题统计）
+```typescript
+interface UserProgress {
+  id: string;                         // 记录 ID
+  user_id: string;                    // 用户 ID
+  question_id: string;                // 题目 ID
+  user_answer: "A"|"B"|"C"|"D"|null;  // 用户选择的答案
+  is_correct: boolean | null;         // 是否答对（null=未做过）
+  attempt_count: number;              // 做过几次
+  consecutive_correct_count: number;  // 连续答对次数
+  status: "normal"|"wrong_book"|"mastered";  // 做题状态
+  last_attempt_at: string | null;     // 最后做题时间
+  created_at: string;                 // 创建时间
+}
+```
+**用途**: 追踪单题的做题统计
+**核心设计**: 为 user_id + question_id 的唯一约束（每题最多一条记录）
+**状态流转**:
+- normal → 正常状态（首次做对）
+- normal → wrong_book → mastered（第一次做错，连续答对 3 次后升级）
+- wrong_book（做错后自动设置）
+
+#### 4. QuestionAttempt（做题历史）
+```typescript
+interface QuestionAttempt {
+  id: string;                         // 记录 ID
+  user_id: string;                    // 用户 ID
+  question_id: string;                // 题目 ID
+  user_answer: "A"|"B"|"C"|"D";       // 本次答案
+  is_correct: boolean;                // 本次是否答对
+  pomodoro_session_id: string | null; // 所属番茄钟（可选）
+  created_at: string;                 // 做题时间戳
+}
+```
+**用途**: 保留做题的完整历史（一次做题=一条记录）
+**与 UserProgress 的区别**:
+- `UserProgress` 是统计表（总次数、连续答对数）
+- `QuestionAttempt` 是历史表（每一次都记录）
+**分析用途**: 追踪学习曲线、发现弱点等
+
+#### 5. Bookmark（书签）
+```typescript
+interface Bookmark {
+  id: string;              // 书签 ID
+  user_id: string;         // 用户 ID
+  question_id: string;     // 题目 ID
+  created_at: string;      // 创建时间
+}
+```
+**用途**: 用户收藏重要题目
+**设计**: user_id + question_id 唯一约束（防重复收藏）
+
+#### 6. FocusSession（番茄钟会话）
+```typescript
+interface FocusSession {
+  id: string;                  // 会话 ID
+  user_id: string;             // 用户 ID
+  started_at: string;          // 开始时间
+  ended_at: string | null;     // 结束时间（进行中为 null）
+  duration: number;            // 实际时长（秒）
+  goal_description: string | null;  // 目标描述（可选）
+  created_at: string;          // 创建时间
+}
+```
+**用途**: 记录番茄钟会话，支持学习时间统计
+
+#### 7. ApiResponse（API 响应）
+```typescript
+interface ApiResponse<T> {
+  success: boolean;     // 是否成功
+  data?: T;            // 成功时的数据
+  error?: string;      // 失败时的错误消息
+}
+```
+**用途**: 统一所有 API 端点的响应格式
+**泛型设计**: `ApiResponse<Question[]>` 表示返回题目数组
+
+#### 8. AuthUser（认证用户）
+```typescript
+interface AuthUser {
+  id: string;     // 用户 ID（来自 Supabase Auth）
+  email: string;  // 邮箱
+}
+```
+**用途**: 存储从 Supabase Auth 获取的用户信息（最小集）
+
+### Union Types 设计
+
+#### 1. Session - 考试场次
+```typescript
+session: "AM" | "PM"
+```
+**含义**:
+- "AM" - 上午场
+- "PM" - 下午场
+**应用**: FE 和 AP 考试通常有两个时间段
+
+#### 2. Difficulty - 难度级别
+```typescript
+difficulty: "easy" | "normal" | "hard"
+```
+**含义**:
+- "easy" - 简单（基础概念）
+- "normal" - 中等（标准难度）
+- "hard" - 困难（高阶应用）
+**应用**: 用于题目筛选、难度统计
+
+#### 3. Status - 做题状态
+```typescript
+status: "normal" | "wrong_book" | "mastered"
+```
+**含义**:
+- "normal" - 普通状态（做对过或未做过）
+- "wrong_book" - 错题状态（做错过）
+- "mastered" - 已掌握（连续答对 3 次）
+**状态转移图**:
+```
+初始（未做） → normal（答对）
+            → wrong_book（答错）
+                    ↓
+                  mastered（连续答对 3 次）
+```
+
+#### 4. Answer - 选择答案
+```typescript
+answer: "A" | "B" | "C" | "D"
+```
+**含义**: 四选一的选择答案
+**应用**: user_answer、correct_answer 字段
+
+### 关键设计原则
+
+#### 原则 1：null 值的谨慎使用
+```typescript
+// ✓ 好的做法：区分"未知"和"已确定"
+user_answer: "A" | "B" | "C" | "D" | null;  // null = 未做过
+is_correct: boolean | null;                  // null = 未做过
+ended_at: string | null;                     // null = 进行中
+
+// ✗ 避免：过度使用 null
+username?: string;  // 不好：应该总是有用户名
+```
+
+#### 原则 2：Enum vs Union Types
+```typescript
+// ✓ 推荐：Union types（简洁，无额外编译）
+type Difficulty = "easy" | "normal" | "hard";
+
+// ⚠️ 可用但不推荐：Enum（增加编译产物）
+enum Difficulty {
+  Easy = "easy",
+  Normal = "normal",
+  Hard = "hard"
+}
+```
+
+#### 原则 3：唯一约束的设计
+```typescript
+// UserProgress: user_id + question_id 唯一
+// 含义：每个用户对每题最多有一条统计记录
+
+// Bookmark: user_id + question_id 唯一
+// 含义：每个用户对每题最多收藏一次
+```
+
+### 与 lib/supabase.ts 的配合
+
+**协作流程**:
+
+```
+API 端点 (app/api/*/route.ts)
+    ↓
+导入 supabase 客户端
+import { supabase } from "@/lib/supabase"
+    ↓
+导入类型定义
+import type { Question, UserProgress } from "@/lib/types"
+    ↓
+执行类型化操作
+const { data } = await supabase
+  .from("questions")
+  .select("*") as { data: Question[] }
+    ↓
+返回 ApiResponse<T> 格式的响应
+```
+
+**优势**:
+- 编译时类型检查：catch 错误于构建阶段
+- 自动完成：IDE 知道每个字段的类型
+- 文档化：类型就是最好的文档
+- 可维护性：修改数据结构时，TypeScript 会指出所有影响的地方
+
+### 与数据库表的映射关系
+
+| TypeScript Interface | Supabase Table | 说明 |
+|---------------------|----------------|------|
+| Profile | profiles | 1:1 映射 |
+| Question | questions | 1:1 映射 |
+| UserProgress | user_progress | 1:1 映射 |
+| QuestionAttempt | question_attempts | 1:1 映射 |
+| Bookmark | bookmarks | 1:1 映射 |
+| FocusSession | focus_sessions | 1:1 映射 |
+
+### 后续扩展场景
+
+#### 场景 1：添加新字段
+```typescript
+// 需求：用户想在错题本中添加笔记
+// 修改：UserProgress 接口
+interface UserProgress {
+  // ... 现有字段
+  notes?: string;  // 新增：笔记字段
+}
+// 然后在 Supabase 中也添加对应字段
+```
+
+#### 场景 2：支持 AP 考试
+```typescript
+// 需求：区分 FE 和 AP 考试
+// 修改：Question 接口
+interface Question {
+  // ... 现有字段
+  exam_type: "FE" | "AP";  // 新增：考试类型
+}
+// 所有查询都需要加上 exam_type 过滤
+```
+
+#### 场景 3：添加用户成就系统
+```typescript
+// 新增：Achievement 接口
+interface Achievement {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  icon_url: string;
+  unlocked_at: string | null;  // null = 未解锁
+}
+
+// 新增：AchievementProgress 接口
+interface AchievementProgress {
+  id: string;
+  user_id: string;
+  achievement_id: string;
+  progress: number;           // 0-100
+  status: "locked" | "in_progress" | "unlocked";
+}
+```
+
+### 性能考虑
+
+#### 问题 1：为什么 Question 是不可变的？
+- 题目信息一旦发布不应改变（确保公平性）
+- 减少数据库查询压力
+- 可以充分缓存
+
+#### 问题 2：为什么需要两张表（UserProgress 和 QuestionAttempt）？
+- UserProgress：统计数据（当前状态）— 频繁更新，查询快
+- QuestionAttempt：历史数据（完整记录）— 仅追加，用于分析
+
+#### 问题 3：user_answer 和 is_correct 为什么有 null？
+- null = 用户从未做过这道题
+- 区分"不知道用户是否做过"vs"用户做过但答案是 null"（实际上不可能）
+
+### 总结
+
+`lib/types.ts` 虽然只是类型定义文件，但它：
+- **定义了应用的数据契约**：所有操作都基于这些类型
+- **提供了编译时安全**：TypeScript 在构建时就能发现类型错误
+- **文档化了数据结构**：新开发者可以通过类型定义快速理解应用
+- **支持后续扩展**：新增功能时只需修改对应的接口
+
+与 `lib/supabase.ts` 一起，`lib/types.ts` 形成了类型安全的 Supabase 集成层。
