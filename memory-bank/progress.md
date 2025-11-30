@@ -146,7 +146,32 @@
 ### 步骤 2.6：实现 GitHub OAuth 登录功能
 - [x] 配置 GitHub OAuth
 - [x] 添加登录按钮处理
-- [ ] 验证 OAuth 流程（待后续测试）
+- [x] 验证 OAuth 流程
+
+#### 步骤 2.6 验证完成 ✅
+- **验证日期**：2025-11-30
+- **验证状态**：✅ 完成（测试通过）
+- **实现特性**：
+  - ✅ 在 `/app/(auth)/login/page.tsx` 中添加了 `handleGitHubLogin` 函数
+  - ✅ 集成 Supabase `signInWithOAuth({ provider: "github" })`
+  - ✅ 配置了重定向 URL 为 `${window.location.origin}/dashboard`
+  - ✅ 添加了 "GitHub 登录" 按钮，使用 Tailwind 样式（灰色背景）
+  - ✅ 包含了加载状态处理（按钮在登录过程中禁用）
+  - ✅ 包含了完整的错误处理和用户友好的提示信息
+  - ✅ 用户授权后自动重定向到应用
+
+#### 实现细节
+- **GitHub OAuth 流程**：
+  1. 用户点击 "GitHub 登录" 按钮
+  2. 触发 `handleGitHubLogin` 函数
+  3. 调用 `supabase.auth.signInWithOAuth({ provider: "github" })`
+  4. 重定向到 GitHub 授权页面
+  5. 用户授权后返回应用，自动重定向到 `/dashboard`
+  6. 新用户在 Supabase Auth Users 中自动创建
+- **安全性考虑**：
+  - OAuth 令牌由 Supabase 服务器端管理，不在前端存储
+  - 使用 HTTPS 传输所有认证信息
+  - Supabase 自动处理会话管理
 
 ### 步骤 2.7：创建注册页面
 - [ ] 创建 (auth)/register/page.tsx

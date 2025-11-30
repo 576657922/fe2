@@ -1764,3 +1764,241 @@ Dashboard Page:
 | `lib/types.ts` | TypeScript 数据类型定义 | ← 所有使用 DB 数据的文件 |
 
 ---
+
+## 步骤 2.6 架构更新 - GitHub OAuth 登录实现（2025-11-30）
+
+### GitHub OAuth 流程分析
+
+#### 完整认证流程序列图
+
+```
+用户界面                    前端应用                    Supabase                    GitHub
+   │                          │                           │                           │
+   │ 1. 点击"GitHub登录"        │                           │                           │
+   ├────────────────────────>│                           │                           │
+   │                          │ 2. signInWithOAuth()      │                           │
+   │                          ├──────────────────────────>│                           │
+   │                          │                           │ 3. 重定向到授权页面          │
+   │                          │<──────────────────────────┤──────────────────────────>│
+   │                          │                           │                           │
+   │ 4. 用户在 GitHub 授权      │                           │                           │
+   │<───────────────────────────────────────────────────────────────────────────────>│
+   │                          │                           │                           │
+   │                          │                           │ 5. GitHub 返回 code        │
+   │                          │                           │<──────────────────────────│
+   │                          │                           │                           │
+   │                          │ 6. 回调 URL + code         │                           │
+   │                          │<──────────────────────────┤                           │
+   │                          │                           │ 7. 交换 code 获得 access token
+   │                          │                           ├──────────────────────────>│
+   │                          │                           │<──────────────────────────│
+   │ 8. 重定向到 /dashboard    │                           │                           │
+   │<──────────────────────────┤                           │                           │
+   │                          │ 9. 用户信息保存到 auth.users
+   │                          │                           │ 10. 创建会话 token
+   │                          │<──────────────────────────┤                           │
+```
+
+#### 关键实现代码
+
+**前端触发点** - `app/(auth)/login/page.tsx:68-82`:
+```typescript
+const handleGitHubLogin = async () => {
+  setError(null);
+  setIsLoading(true);
+
+  try {
+    const { error: signInError } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+
+    if (signInError) {
+      setError(signInError.message || "GitHub 登录失败");
+      setIsLoading(false);
+    }
+  } catch (err) {
+    setError("GitHub 登录失败，请重试");
+    console.error("GitHub login error:", err);
+    setIsLoading(false);
+  }
+};
+```
+
+**关键参数说明**:
+| 参数 | 含义 | 示例值 |
+|------|------|--------|
+| `provider` | OAuth 提供商 | `"github"` |
+| `redirectTo` | 授权后的重定向 URL | `http://localhost:3000/dashboard` |
+
+### GitHub OAuth 配置流程（步骤 1.10）
+
+#### 在 GitHub 上的配置步骤
+
+1. **创建 OAuth App**
+   - 访问 https://github.com/settings/apps/new
+   - 填写应用信息：
+     - Application name: `fe-quiz-platform-dev`
+     - Homepage URL: `http://localhost:3000` (开发环境)
+     - Authorization callback URL: `https://[project-id].supabase.co/auth/v1/callback`
+
+2. **获取凭证**
+   - GitHub 返回：Client ID 和 Client Secret
+   - 保存这两个凭证
+
+#### 在 Supabase 中的配置步骤
+
+1. 登录 Supabase 项目
+2. 进入 Authentication → Providers
+3. 找到 GitHub provider
+4. 粘贴 Client ID 和 Client Secret
+5. 点击 Save
+
+### 技术特点与设计决策
+
+#### 1. 无服务器认证流程
+- ✅ **无后端服务器参与**：前端直接调用 Supabase SDK
+- ✅ **Supabase 处理 OAuth 协议**：自动处理 token 交换、refresh 等
+- ✅ **开发者无需关心**：OAuth 的 PKCE、state 参数等安全细节
+- **优势**：
+  - 快速开发，减少后端代码
+  - Supabase 自动处理安全最佳实践
+  - 可轻松添加其他 OAuth 提供商（Google、微信等）
+
+#### 2. 重定向 URL 的动态配置
+```typescript
+redirectTo: `${window.location.origin}/dashboard`
+```
+- **好处**：自动适应不同环境
+  - 开发环境：`http://localhost:3000/dashboard`
+  - 生产环境：`https://yourdomain.com/dashboard`
+- **无需**：在多个地方维护 URL
+
+#### 3. 错误处理的三层防线
+```typescript
+// 第 1 层：Supabase 返回的错误
+const { error: signInError } = await supabase.auth.signInWithOAuth(...);
+
+// 第 2 层：未预期的异常
+} catch (err) {
+  setError("GitHub 登录失败，请重试");
+}
+
+// 第 3 层：用户友好的错误信息
+setError(signInError.message || "GitHub 登录失败");
+```
+
+#### 4. 加载状态的重要性
+```typescript
+const [isLoading, setIsLoading] = useState(false);
+
+// 点击后立即禁用按钮，防止重复提交
+disabled={isLoading}
+```
+- 防止用户多次点击
+- 给予用户视觉反馈（按钮变灰）
+
+### 与邮箱登录的对比
+
+| 方面 | 邮箱登录 | GitHub OAuth |
+|------|---------|-------------|
+| 密码传输 | 前端→Supabase | 无（直接重定向到 GitHub） |
+| 密码存储 | Supabase 数据库 | GitHub 数据库（用户已有账户） |
+| 登录步骤 | 输入→提交→重定向 | 点击→重定向→GitHub 授权→重定向 |
+| 新用户注册 | 需要单独的注册流程 | 自动创建账户（GitHub 用户即自动注册） |
+| 会话管理 | Supabase JWT token | Supabase JWT token（来自 GitHub 身份） |
+
+### 后端对接点（目前为 None）
+
+**当前阶段**（2.1-2.6）：
+- 纯前端 + Supabase，无后端服务器
+- 认证流程完全在 Supabase 管理
+
+**未来扩展可能**：
+- 当需要自定义业务逻辑时（如特殊的 webhook、审核流程），可添加 Next.js API Routes
+- 示例：在 `app/api/auth/callback/route.ts` 中处理 GitHub 回调的后续业务逻辑
+
+### 安全性分析
+
+#### GitHub OAuth 的安全优势
+1. **用户密码隐私保护**
+   - 用户在 GitHub 网站输入密码，应用从不接触密码
+   - 应用只接收 OAuth token，无法获知密码
+
+2. **Token 的有限范围**
+   - GitHub 的 scope 可被限制（当前为默认，仅读取基本用户信息）
+   - 应用无法访问用户的 GitHub 仓库等敏感信息
+
+3. **Supabase 的 HTTPS + 签名验证**
+   - OAuth 回调使用 HTTPS
+   - Supabase 验证 GitHub 的签名
+
+#### 潜在风险与缓解
+| 风险 | 缓解方案 |
+|------|---------|
+| 用户在不安全 WiFi 上操作 | 使用 HTTPS（已实现） |
+| GitHub 账户被盗 | GitHub 的责任（用户应启用 2FA） |
+| Supabase 被入侵 | Supabase 的责任（企业级安全措施） |
+| 前端代码被篡改（XSS） | 依赖 Content Security Policy、npm 包安全检查 |
+
+### 下一步的扩展可能性
+
+#### 1. 添加更多 OAuth 提供商
+```typescript
+// 仅需改一行 provider 参数
+await supabase.auth.signInWithOAuth({
+  provider: "google",  // 或 "linkedin"、"discord" 等
+  options: { redirectTo: `${window.location.origin}/dashboard` },
+});
+```
+
+#### 2. 支持账户关联
+- 允许邮箱用户关联 GitHub 账户
+- 允许 GitHub 用户关联邮箱账户
+
+#### 3. 使用 GitHub 用户信息预填充个人资料
+```typescript
+// OAuth 成功后，获取用户信息
+const { data: { user } } = await supabase.auth.getUser();
+// user.user_metadata 包含 GitHub 返回的信息（如 avatar_url、name 等）
+// 可用于自动填充 profiles 表
+```
+
+#### 4. 针对 GitHub 特定信息的额外权限
+```typescript
+// 如需读取用户的公开仓库信息，扩展 scope
+await supabase.auth.signInWithOAuth({
+  provider: "github",
+  options: {
+    scopes: "repo read:user",  // 添加额外权限
+    redirectTo: `${window.location.origin}/dashboard`,
+  },
+});
+```
+
+---
+
+## 当前完成进度总结
+
+### 认证系统（已完成）
+- ✅ 步骤 1.10：Supabase Auth 配置（Email + GitHub）
+- ✅ 步骤 2.4：登录页面 UI（邮箱表单）
+- ✅ 步骤 2.5：邮箱登录实现（signInWithPassword）
+- ✅ 步骤 2.6：GitHub OAuth 登录实现（signInWithOAuth）
+
+### 下一步（待实现）
+- ⏳ 步骤 2.7：注册页面 UI
+- ⏳ 步骤 2.8：注册功能实现
+- ⏳ 步骤 2.9：已完成，但需补充题目浏览页面
+- ⏳ 步骤 2.10-2.12：核心做题流程
+
+### 已验证的关键集成
+| 组件 | 集成状态 | 验证日期 |
+|------|---------|---------|
+| Supabase 客户端 | ✅ 完成 | 2025-11-29 |
+| 邮箱登录 | ✅ 完成 | 2025-11-30 |
+| GitHub OAuth | ✅ 完成 | 2025-11-30 |
+| Dashboard 保护 | ✅ 完成 | 2025-11-30 |
+
