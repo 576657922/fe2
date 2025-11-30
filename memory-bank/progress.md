@@ -17,7 +17,7 @@
 - [x] 执行 shadcn-ui init 命令（手动创建）
 - [x] 验证 components/ui/ 目录生成
 - [x] 验证项目正常启动
-- [x] 添加基础组件：button, card, input, label, progress, alert-dialog
+- [x] 添加基础组件：button, card, input, label, progress, alert-dialog, alert
 
 ### 步骤 1.4：创建 Supabase 项目
 - [x] 在 Supabase 上创建项目
@@ -100,14 +100,53 @@
   - ✅ 解决了因 `@apply` 指令导致的 CSS 构建错误。
 
 ### 步骤 2.5：实现邮箱登录功能
-- [ ] 添加表单处理逻辑
-- [ ] 集成 Supabase Auth
-- [ ] 验证登录流程
+- [x] 添加表单处理逻辑
+- [x] 集成 Supabase Auth
+- [x] 验证登录流程
+
+#### 步骤 2.5 验证完成 ✅
+- **验证日期**：2025-11-30
+- **验证状态**：✅ 完成（测试通过）
+- **实现特性**：
+  - ✅ 邮箱/密码表单处理（使用 React hooks: useState）
+  - ✅ 集成 Supabase `signInWithPassword()` 进行邮箱认证
+  - ✅ 实现加载状态（登录过程中按钮禁用，显示"登录中..."）
+  - ✅ 完整的错误处理（用户友好的错误消息）
+  - ✅ 登录成功自动重定向到 `/dashboard`
+  - ✅ 创建了 `app/(dashboard)/layout.tsx`（仪表板布局）：
+    - 页面加载时检查认证状态，未登录自动重定向到 `/login`
+    - 监听 Supabase 认证状态变化
+    - 顶部导航栏显示用户邮箱和"登出"按钮
+    - 侧边栏菜单链接（首页、刷题、错题本、数据统计）
+  - ✅ 创建了 `app/(dashboard)/dashboard/page.tsx`（首页）：
+    - 显示用户信息（用户名、等级、XP、连续打卡天数）
+    - 快速开始按钮（刷题、错题本、番茄钟）
+    - 今日学习概览占位符
+  - ✅ 创建了 `components/ui/alert.tsx` 组件
+  - ✅ GitHub OAuth 登录集成完成
+  - ✅ TypeScript 全部通过，`npm run build` 编译成功
+  - ✅ 所有测试通过
+
+#### 实现细节
+- **认证流程**：
+  1. 用户输入邮箱和密码
+  2. 点击"邮箱登录"触发 `handleEmailLogin` 函数
+  3. 调用 `supabase.auth.signInWithPassword()`
+  4. 成功时使用 `useRouter().push()` 重定向到 `/dashboard`
+  5. 失败时显示错误消息在 Alert 组件中
+- **会话管理**：
+  - Dashboard layout 使用 `supabase.auth.getSession()` 检查初始认证状态
+  - 使用 `supabase.auth.onAuthStateChange()` 监听认证变化
+  - 未认证时自动重定向到登录页，已认证时允许访问
+- **用户保护**：
+  - 前端输入验证（邮箱和密码不能为空）
+  - 密码通过 HTTPS 传输到 Supabase（不在前端存储）
+  - RLS 策略保护 profiles 表（用户只能看到/修改自己的数据）
 
 ### 步骤 2.6：实现 GitHub OAuth 登录功能
-- [ ] 配置 GitHub OAuth
-- [ ] 添加登录按钮处理
-- [ ] 验证 OAuth 流程
+- [x] 配置 GitHub OAuth
+- [x] 添加登录按钮处理
+- [ ] 验证 OAuth 流程（待后续测试）
 
 ### 步骤 2.7：创建注册页面
 - [ ] 创建 (auth)/register/page.tsx
@@ -120,10 +159,10 @@
 - [ ] 验证注册流程
 
 ### 步骤 2.9：创建仪表板基础页面（Dashboard）
-- [ ] 创建 (dashboard)/layout.tsx
-- [ ] 创建 dashboard/page.tsx
-- [ ] 添加导航和保护逻辑
-- [ ] 验证仪表板显示
+- [x] 创建 (dashboard)/layout.tsx
+- [x] 创建 dashboard/page.tsx
+- [x] 添加导航和保护逻辑
+- [x] 验证仪表板显示
 
 ### 步骤 2.10：创建题目浏览页面（Questions Browse）
 - [ ] 创建 questions/page.tsx
