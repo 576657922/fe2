@@ -1021,3 +1021,457 @@ interface AchievementProgress {
 - **æ”¯æŒåç»­æ‰©å±•**ï¼šæ–°å¢åŠŸèƒ½æ—¶åªéœ€ä¿®æ”¹å¯¹åº”çš„æ¥å£
 
 ä¸ `lib/supabase.ts` ä¸€èµ·ï¼Œ`lib/types.ts` å½¢æˆäº†ç±»å‹å®‰å…¨çš„ Supabase é›†æˆå±‚ã€‚
+
+---
+
+## æ­¥éª¤ 2.3ï¼šå¯¼å…¥ç¤ºä¾‹é¢˜ç›®æ•°æ®åˆ° Supabase - æ¶æ„æ´å¯Ÿ
+
+### å®ç°ç›®çš„
+å°†å‡†å¤‡å¥½çš„é¢˜ç›®æ•°æ®å¯¼å…¥ Supabase æ•°æ®åº“çš„ `questions` è¡¨ï¼Œä¸ºåº”ç”¨æä¾›åˆå§‹é¢˜åº“æ•°æ®ï¼Œæ”¯æŒåç»­çš„é¢˜åº“æµè§ˆå’Œåšé¢˜åŠŸèƒ½ã€‚
+
+### æ•°æ®å¯¼å…¥æµç¨‹
+
+#### æ•°æ®ç»“æ„ï¼ˆQuestion Interfaceï¼‰
+```typescript
+interface Question {
+  id: string;              // å”¯ä¸€æ ‡è¯†ç¬¦ï¼ˆSupabase è‡ªåŠ¨ç”Ÿæˆï¼‰
+  year: string;            // å¹´ä»½ï¼ˆå¦‚ "2023"ï¼‰
+  session: "AM" | "PM";    // è€ƒè¯•åœºæ¬¡
+  category: string;        // ç±»åˆ«ï¼ˆå¦‚ "Fundamentals", "Data Structures"ï¼‰
+  question_number: number; // é¢˜å·
+  content: string;         // é¢˜å¹²å†…å®¹
+  option_a: string;        // é€‰é¡¹ A
+  option_b: string;        // é€‰é¡¹ B
+  option_c: string;        // é€‰é¡¹ C
+  option_d: string;        // é€‰é¡¹ D
+  correct_answer: "A"|"B"|"C"|"D";  // æ­£ç¡®ç­”æ¡ˆ
+  explanation: string;     // è§£æè¯´æ˜
+  difficulty: "easy"|"normal"|"hard";  // éš¾åº¦çº§åˆ«
+  created_at: string;      // åˆ›å»ºæ—¶é—´æˆ³
+}
+```
+
+### å¯¼å…¥æ–¹æ³•å¯¹æ¯”
+
+#### æ–¹æ³• 1ï¼šSupabase Dashboard Table Editorï¼ˆæ¨èç”¨äºå°è§„æ¨¡æ•°æ®ï¼‰
+**æ­¥éª¤**ï¼š
+1. ç™»å½• Supabase Dashboard
+2. é€‰æ‹©é¡¹ç›® â†’ è¿›å…¥ Tables
+3. æ‰¾åˆ° `questions` è¡¨
+4. ç‚¹å‡» "Insert" â†’ "Import from CSV"
+5. ä¸Šä¼ æˆ–ç²˜è´´ CSV/JSON æ•°æ®
+6. éªŒè¯å­—æ®µæ˜ å°„æ­£ç¡®
+7. ç¡®è®¤å¯¼å…¥
+
+**ä¼˜åŠ¿**ï¼š
+- âœ“ æ— éœ€ç¼–ç 
+- âœ“ å¯è§†åŒ–éªŒè¯
+- âœ“ å®æ—¶é¢„è§ˆ
+
+**åŠ£åŠ¿**ï¼š
+- å¤§é‡æ•°æ®æ—¶è¾ƒæ…¢
+- éœ€è¦æ‰‹åŠ¨æ“ä½œ
+
+**é€‚ç”¨åœºæ™¯**ï¼šåˆå§‹é¢˜åº“å¯¼å…¥ï¼ˆ20-500 æ¡è®°å½•ï¼‰
+
+#### æ–¹æ³• 2ï¼šSQL INSERT è¯­å¥ï¼ˆæ¨èç”¨äºä¸­ç­‰è§„æ¨¡æ•°æ®ï¼‰
+**SQL ç¤ºä¾‹**ï¼š
+```sql
+INSERT INTO questions (year, session, category, question_number, content, option_a, option_b, option_c, option_d, correct_answer, explanation, difficulty)
+VALUES 
+  ('2023', 'AM', 'Fundamentals', 1, 'é¢˜å¹²å†…å®¹...', 'é€‰é¡¹A', 'é€‰é¡¹B', 'é€‰é¡¹C', 'é€‰é¡¹D', 'A', 'è§£æ...', 'easy'),
+  ('2023', 'AM', 'Fundamentals', 2, 'é¢˜å¹²å†…å®¹...', 'é€‰é¡¹A', 'é€‰é¡¹B', 'é€‰é¡¹C', 'é€‰é¡¹D', 'B', 'è§£æ...', 'normal'),
+  ...
+```
+
+**ä¼˜åŠ¿**ï¼š
+- âœ“ å¯æ‰¹é‡æ’å…¥
+- âœ“ å¯æ§åˆ¶é¡ºåº
+- âœ“ æ˜“äºç‰ˆæœ¬æ§åˆ¶
+
+**åŠ£åŠ¿**ï¼š
+- éœ€è¦æ‰‹å†™ SQL
+- æ•°æ®é‡å¤§æ—¶æ€§èƒ½è¾ƒå·®
+
+**é€‚ç”¨åœºæ™¯**ï¼šä¸­ç­‰è§„æ¨¡æ•°æ®æˆ–æœ‰ç‰¹å®šé¡ºåºè¦æ±‚
+
+#### æ–¹æ³• 3ï¼šSupabase API + è„šæœ¬ï¼ˆæ¨èç”¨äºå¤§è§„æ¨¡æ•°æ®ï¼‰
+**ä»£ç ç¤ºä¾‹**ï¼š
+```typescript
+import { supabase } from "@/lib/supabase";
+import type { Question } from "@/lib/types";
+
+const questionsData: Question[] = [
+  // ä» JSON æ–‡ä»¶æˆ– API è¯»å–
+];
+
+// æ‰¹é‡å¯¼å…¥
+const { data, error } = await supabase
+  .from("questions")
+  .insert(questionsData);
+
+if (error) {
+  console.error("Import failed:", error);
+} else {
+  console.log("Imported", data?.length, "questions");
+}
+```
+
+**ä¼˜åŠ¿**ï¼š
+- âœ“ å¯è‡ªåŠ¨åŒ–
+- âœ“ æ˜“äºå¤„ç†é”™è¯¯
+- âœ“ æ”¯æŒå¤§è§„æ¨¡æ•°æ®
+- âœ“ å¯é›†æˆåˆ°éƒ¨ç½²æµç¨‹
+
+**åŠ£åŠ¿**ï¼š
+- éœ€è¦ç¼–å†™ä»£ç 
+- éœ€è¦è®¾ç½®ç¯å¢ƒ
+
+**é€‚ç”¨åœºæ™¯**ï¼šå¤§è§„æ¨¡æ•°æ®ï¼ˆ1000+ æ¡ï¼‰æˆ–è‡ªåŠ¨åŒ–å¯¼å…¥
+
+### æœ¬é¡¹ç›®é‡‡ç”¨çš„æ–¹æ³•
+
+**é€‰æ‹©**ï¼šæ–¹æ³• 1ï¼ˆSupabase Dashboard Table Editorï¼‰
+
+**åŸå› **ï¼š
+- åˆæœŸæ•°æ®é‡è¾ƒå°ï¼ˆ20+ æ¡ï¼‰
+- ä¾¿äºéªŒè¯æ•°æ®å®Œæ•´æ€§
+- æ— éœ€ç¼–ç ï¼Œå¿«é€Ÿä¸Šæ‰‹
+- å¯è§†åŒ–æ“ä½œå‡å°‘é”™è¯¯
+
+### æ•°æ®å®Œæ•´æ€§ä¿è¯
+
+#### 1. å­—æ®µæ˜ å°„éªŒè¯
+å¯¼å…¥æ—¶éœ€ç¡®ä¿ä»¥ä¸‹å­—æ®µæ­£ç¡®æ˜ å°„ï¼š
+```
+CSV/JSON å­—æ®µ      â†’ Supabase è¡¨å­—æ®µ
+year               â†’ year
+session            â†’ session (AM æˆ– PM)
+category           â†’ category
+question_number    â†’ question_number
+content            â†’ content
+option_a/b/c/d     â†’ option_a/b/c/d
+correct_answer     â†’ correct_answer (A/B/C/D)
+explanation        â†’ explanation
+difficulty         â†’ difficulty (easy/normal/hard)
+```
+
+#### 2. æ•°æ®ç±»å‹æ£€æŸ¥
+```typescript
+// âœ“ æ­£ç¡®çš„æ•°æ®ç±»å‹
+{
+  year: "2023",              // string
+  session: "AM",             // "AM" | "PM"
+  category: "Fundamentals",  // string
+  question_number: 1,        // number
+  content: "é¢˜å¹²...",        // string
+  option_a: "é€‰é¡¹A",         // string
+  correct_answer: "A",       // "A" | "B" | "C" | "D"
+  difficulty: "easy"         // "easy" | "normal" | "hard"
+}
+```
+
+#### 3. å¿…å¡«å­—æ®µæ£€æŸ¥
+æ‰€æœ‰ä»¥ä¸‹å­—æ®µå¿…é¡»æœ‰å€¼ï¼ˆä¸èƒ½ä¸º NULLï¼‰ï¼š
+- âœ“ year
+- âœ“ session
+- âœ“ category
+- âœ“ question_number
+- âœ“ contentï¼ˆé¢˜å¹²ï¼‰
+- âœ“ option_a, option_b, option_c, option_dï¼ˆå››ä¸ªé€‰é¡¹ï¼‰
+- âœ“ correct_answer
+- âœ“ explanation
+- âœ“ difficulty
+
+#### 4. å”¯ä¸€æ€§æ£€æŸ¥
+```sql
+-- éªŒè¯æ˜¯å¦æœ‰é‡å¤çš„é¢˜ç›®
+SELECT year, session, category, question_number, COUNT(*) 
+FROM questions 
+GROUP BY year, session, category, question_number 
+HAVING COUNT(*) > 1;
+
+-- æ­£å¸¸æƒ…å†µä¸‹åº”è¯¥è¿”å› 0 è¡Œ
+```
+
+### éªŒè¯æŸ¥è¯¢
+
+#### éªŒè¯ 1ï¼šæ€»è®°å½•æ•°
+```sql
+SELECT COUNT(*) as total_questions FROM questions;
+-- æœŸæœ›ï¼šâ‰¥ 20
+```
+
+#### éªŒè¯ 2ï¼šå¹´ä»½å¤šæ ·æ€§
+```sql
+SELECT DISTINCT year FROM questions ORDER BY year;
+-- æœŸæœ›ï¼šâ‰¥ 2 ä¸ªå¹´ä»½
+```
+
+#### éªŒè¯ 3ï¼šç±»åˆ«å¤šæ ·æ€§
+```sql
+SELECT DISTINCT category FROM questions ORDER BY category;
+-- æœŸæœ›ï¼šâ‰¥ 3 ä¸ªç±»åˆ«
+```
+
+#### éªŒè¯ 4ï¼šéš¾åº¦åˆ†å¸ƒ
+```sql
+SELECT difficulty, COUNT(*) as count 
+FROM questions 
+GROUP BY difficulty 
+ORDER BY difficulty;
+-- æœŸæœ›ï¼šè‡³å°‘åŒ…å« easy, normal, hard ä¸‰ä¸ªéš¾åº¦
+```
+
+#### éªŒè¯ 5ï¼šå­—æ®µå®Œæ•´æ€§
+```sql
+SELECT COUNT(*) as null_content FROM questions WHERE content IS NULL;
+SELECT COUNT(*) as null_answer FROM questions WHERE correct_answer IS NULL;
+-- æœŸæœ›ï¼šéƒ½è¿”å› 0
+```
+
+### æ•°æ®åº“æŸ¥è¯¢ä¼˜åŒ–
+
+#### ç´¢å¼•è®¾è®¡
+æ ¹æ®å¸¸è§æŸ¥è¯¢æ¨¡å¼ï¼Œä»¥ä¸‹å­—æ®µå·²æœ‰ç´¢å¼•ï¼š
+```sql
+-- å·²åˆ›å»ºçš„ç´¢å¼•
+CREATE INDEX idx_questions_year ON questions(year);
+CREATE INDEX idx_questions_category ON questions(category);
+CREATE INDEX idx_questions_year_category ON questions(year, category);
+```
+
+**ä¼˜åŒ–è¯´æ˜**ï¼š
+- ç”¨æˆ·æŒ‰å¹´ä»½ç­›é€‰é¢˜ç›® â†’ ä½¿ç”¨ `year` ç´¢å¼•
+- ç”¨æˆ·æŒ‰ç±»åˆ«ç­›é€‰é¢˜ç›® â†’ ä½¿ç”¨ `category` ç´¢å¼•
+- ç”¨æˆ·åŒæ—¶æŒ‰å¹´ä»½å’Œç±»åˆ«ç­›é€‰ â†’ ä½¿ç”¨ç»„åˆç´¢å¼•
+
+#### æŸ¥è¯¢æ€§èƒ½ç¤ºä¾‹
+```typescript
+// å¿«é€ŸæŸ¥è¯¢ç¤ºä¾‹ï¼ˆä¼šä½¿ç”¨ç´¢å¼•ï¼‰
+const questions = await supabase
+  .from("questions")
+  .select("*")
+  .eq("year", "2023")
+  .eq("category", "Fundamentals");
+
+// æ…¢æŸ¥è¯¢ç¤ºä¾‹ï¼ˆä¸ä¼šä½¿ç”¨ç´¢å¼•ï¼‰
+const questions = await supabase
+  .from("questions")
+  .select("*")
+  .textSearch("content", "å…³é”®è¯"); // å…¨æ–‡æœç´¢
+```
+
+### ä¸ç±»å‹ç³»ç»Ÿçš„åä½œ
+
+**å®Œæ•´çš„æ•°æ®æµ**ï¼š
+
+```
+å¯¼å…¥æ•°æ® (CSV/JSON)
+    â†“
+Supabase æ•°æ®åº“ (questions è¡¨)
+    â†“
+Supabase API æŸ¥è¯¢
+    â†“
+å‰ç«¯æ¥æ”¶ JSON å“åº”
+    â†“
+TypeScript ç±»å‹æ£€æŸ¥ (Question interface)
+    â†“
+IDE è‡ªåŠ¨å®Œæˆå’Œç±»å‹æç¤º
+```
+
+**ç¤ºä¾‹ä»£ç **ï¼š
+```typescript
+// API ç«¯ç‚¹ï¼ˆapp/api/questions/route.tsï¼‰
+import { supabase } from "@/lib/supabase";
+import type { Question } from "@/lib/types";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const year = searchParams.get("year");
+  const category = searchParams.get("category");
+
+  let query = supabase
+    .from("questions")
+    .select("*");
+
+  if (year) query = query.eq("year", year);
+  if (category) query = query.eq("category", category);
+
+  const { data, error } = await query;
+
+  if (error) {
+    return Response.json({ success: false, error: error.message });
+  }
+
+  // data è‡ªåŠ¨è¢« TypeScript æ¨æ–­ä¸º Question[]
+  return Response.json({ success: true, data });
+}
+```
+
+### åç»­æ•°æ®ç»´æŠ¤
+
+#### åœºæ™¯ 1ï¼šæ·»åŠ æ–°é¢˜ç›®
+```sql
+-- å•æ¡æ’å…¥
+INSERT INTO questions (year, session, category, question_number, content, option_a, option_b, option_c, option_d, correct_answer, explanation, difficulty)
+VALUES ('2024', 'AM', 'Fundamentals', 21, 'æ–°é¢˜å¹²...', '...', '...', '...', '...', 'A', '...', 'normal');
+
+-- æ‰¹é‡æ’å…¥
+INSERT INTO questions (...) VALUES (...), (...), ...;
+```
+
+#### åœºæ™¯ 2ï¼šæ›´æ–°é¢˜ç›®
+```sql
+-- ä¿®æ­£é”™è¯¯é¢˜ç›®
+UPDATE questions 
+SET content = 'ä¿®æ­£åçš„é¢˜å¹²', explanation = 'ä¿®æ­£åçš„è§£æ'
+WHERE year = '2023' AND question_number = 5;
+```
+
+#### åœºæ™¯ 3ï¼šåˆ é™¤é¢˜ç›®
+```sql
+-- è°¨æ…ä½¿ç”¨ï¼ˆä¼šå½±å“å·²æœ‰çš„åšé¢˜è®°å½•ï¼‰
+DELETE FROM questions 
+WHERE year = '2022' AND question_number = 1;
+```
+
+**å»ºè®®**ï¼š
+- ä½¿ç”¨è½¯åˆ é™¤ï¼ˆæ·»åŠ  `is_deleted` å­—æ®µï¼‰
+- ä¿æŒå†å²è®°å½•å®Œæ•´æ€§
+- é¿å…ç›´æ¥åˆ é™¤å·²æœ‰åšé¢˜è®°å½•çš„é¢˜ç›®
+
+#### åœºæ™¯ 4ï¼šå¯¼å‡ºé¢˜ç›®å¤‡ä»½
+```sql
+-- å¯¼å‡ºä¸º CSV
+SELECT year, session, category, question_number, content, 
+       option_a, option_b, option_c, option_d, 
+       correct_answer, explanation, difficulty
+FROM questions
+ORDER BY year, question_number;
+```
+
+### æ€§èƒ½è€ƒè™‘
+
+#### é—®é¢˜ 1ï¼šå¯¼å…¥æ—¶æ€§èƒ½
+- å¯¼å…¥ 20 æ¡è®°å½•ï¼šæ¯«ç§’çº§ï¼ˆæ— æ˜æ˜¾æ„ŸçŸ¥ï¼‰
+- å¯¼å…¥ 1000 æ¡è®°å½•ï¼šç§’çº§ï¼ˆå¯èƒ½éœ€è¦ç­‰å¾…ï¼‰
+- å¯¼å…¥ 10000+ æ¡ï¼šåˆ†é’Ÿçº§ï¼ˆå»ºè®®ä½¿ç”¨ API è„šæœ¬åˆ†æ‰¹å¯¼å…¥ï¼‰
+
+#### é—®é¢˜ 2ï¼šæŸ¥è¯¢æ—¶æ€§èƒ½
+```typescript
+// âœ“ å¿«é€Ÿï¼ˆä½¿ç”¨ç´¢å¼•ï¼‰
+.eq("year", "2023")
+.eq("category", "Fundamentals")
+
+// âš ï¸ è¾ƒæ…¢ï¼ˆå…¨è¡¨æ‰«æï¼‰
+.like("content", "%å…³é”®è¯%")
+
+// âŒ å¾ˆæ…¢ï¼ˆå¤æ‚é€»è¾‘ï¼‰
+.select("*", { count: "exact" })  // è®¡æ•°æ‰€æœ‰è¡Œ
+```
+
+### æ€»ç»“
+
+`questions` è¡¨çš„æ•°æ®å¯¼å…¥æ˜¯åº”ç”¨çš„åŸºç¡€ï¼Œç›´æ¥å½±å“ï¼š
+- **ç”¨æˆ·ä½“éªŒ**ï¼šé¢˜åº“æ•°é‡å’Œè´¨é‡å†³å®šå­¦ä¹ ä½“éªŒ
+- **ç³»ç»Ÿæ€§èƒ½**ï¼šç´¢å¼•è®¾è®¡å½±å“æŸ¥è¯¢é€Ÿåº¦
+- **æ•°æ®å®Œæ•´æ€§**ï¼šå­—æ®µå®Œæ•´æ€§å½±å“åç»­åŠŸèƒ½ï¼ˆåšé¢˜ã€ç»Ÿè®¡ç­‰ï¼‰
+- **å¯ç»´æŠ¤æ€§**ï¼šæ¸…æ™°çš„æ•°æ®ç»“æ„ä¾¿äºæœªæ¥æ‰©å±•
+
+é€šè¿‡æ­£ç¡®çš„å¯¼å…¥æ–¹æ³•ã€å®Œæ•´çš„éªŒè¯å’Œåˆç†çš„ç´¢å¼•è®¾è®¡ï¼Œæˆ‘ä»¬ä¸ºåç»­çš„æ ¸å¿ƒåŠŸèƒ½å¥ å®šäº†åšå®åŸºç¡€ã€‚
+---
+
+## ²½Öè 2.4£º´´½¨µÇÂ¼Ò³Ãæ - ¼Ü¹¹¶´²ì
+
+### ÊµÏÖÄ¿µÄ
+´´½¨Ò»¸öÃÀ¹Û¡¢ÏìÓ¦Ê½µÄµÇÂ¼Ò³Ãæ£¬×÷ÎªÓÃ»§½øÈëÓ¦ÓÃµÄÈë¿Ú¡£¸ÃÒ³ÃæÌá¹©ÓÊÏäºÍ GitHub Á½ÖÖµÇÂ¼·½Ê½£¬²¢Òıµ¼ĞÂÓÃ»§µ½×¢²áÒ³Ãæ¡£
+
+### ÎÄ¼ş½á¹¹
+
+**ÎÄ¼şÎ»ÖÃ**: pp/(auth)/login/page.tsx
+
+**ºËĞÄÄÚÈİ**:
+`	ypescript
+// 1. µ¼Èë React ºÍ Next.js µÄ Link ×é¼ş
+import Link from "next/link";
+
+// 2. µ¼Èë shadcn/ui ×é¼ş
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+// 3. ¶¨Òå LoginPage ×é¼ş
+export default function LoginPage() {
+  return (
+    // Ê¹ÓÃ Flexbox ºÍ Tailwind CSS ÊµÏÖ¾ÓÖĞ²¼¾Ö
+    <div className="flex items-center justify-center min-h-screen ...">
+      <Card>
+        <CardHeader>
+          <CardTitle>µÇÂ¼</CardTitle>
+          <CardDescription>...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* µÇÂ¼±íµ¥ */}
+          <div className="grid gap-4">
+            <Label htmlFor="email">ÓÊÏä</Label>
+            <Input id="email" type="email" ... />
+            
+            <Label htmlFor="password">ÃÜÂë</Label>
+            <Input id="password" type="password" ... />
+
+            <Button type="submit" className="w-full ...">ÓÊÏäµÇÂ¼</Button>
+            <Button variant="secondary" className="w-full ...">GitHub µÇÂ¼</Button>
+          </div>
+          
+          {/* ×¢²áÁ´½Ó */}
+          <div className="mt-4 text-center text-sm">
+            »¹Ã»ÓĞÕË»§? <Link href="/register">×¢²á</Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+`
+
+### ¹Ø¼üÉè¼Æ¾ö²ß
+
+#### 1. Â·ÓÉ·Ö×é (auth)
+- **ÎªÊ²Ã´**: (auth) ÎÄ¼ş¼ĞÊÇÒ»¸öÂ·ÓÉ×é£¬Ëü²»»áÓ°Ïì URL Â·¾¶£¨¼´ URL ÈÔÈ»ÊÇ /login ¶ø²»ÊÇ /(auth)/login£©¡£
+- **ºÃ´¦**:
+  - **×éÖ¯ĞÔ**: ½«ËùÓĞÈÏÖ¤Ïà¹ØµÄÒ³Ãæ£¨ÈçµÇÂ¼¡¢×¢²á¡¢Íü¼ÇÃÜÂë£©·ÅÔÚÒ»Æğ£¬±ãÓÚ¹ÜÀí¡£
+  - **¹²Ïí²¼¾Ö**: ¿ÉÒÔÎªÕâ¸ö×é´´½¨Ò»¸öpp/(auth)/layout.tsxÎÄ¼ş£¬ÎªËùÓĞÈÏÖ¤Ò³ÃæÌá¹©Í³Ò»µÄ²¼¾Ö£¬¶ø²»»áÓ°Ïìµ½ÒÇ±í°å£¨dashboard£©µÈÆäËû²¿·ÖµÄ²¼¾Ö¡£
+
+#### 2. Ê¹ÓÃ shadcn/ui ¹¹½¨±íµ¥
+- **ÎªÊ²Ã´**: shadcn/ui Ìá¹©ÁËÒ»Ì×Éè¼Æ¾«Á¼¡¢¿É·ÃÎÊĞÔºÃµÄ»ù´¡×é¼ş¡£
+- **ºÃ´¦**:
+  - **¿ª·¢Ğ§ÂÊ**: ÎŞĞè´ÓÁã±àĞ´¿¨Æ¬¡¢ÊäÈë¿ò¡¢°´Å¥µÈ×é¼ş£¬¿ÉÒÔÖ±½ÓÊ¹ÓÃ¡£
+  - **Ò»ÖÂĞÔ**: ±£Ö¤ÁËÓ¦ÓÃ UI ·ç¸ñµÄÍ³Ò»¡£
+  - **¿É¶¨ÖÆĞÔ**: ÒÀÈ»¿ÉÒÔÍ¨¹ı Tailwind CSS Àà½øĞĞÇáËÉµÄÑùÊ½¸²¸ÇºÍµ÷Õû£¬Èç´Ë´ÎÈÎÎñÖĞÖ±½ÓÎª°´Å¥Ö¸¶¨ g-blue-500¡£
+- **×é¼şÊ¹ÓÃ**:
+  - Card: ×÷ÎªµÇÂ¼±íµ¥µÄÈİÆ÷£¬Ìá¹©ÁËÇåÎúµÄÊÓ¾õ±ß½ç¡£
+  - Input / Label: ¹¹½¨±ê×¼µÄ±íµ¥ÊäÈë×Ö¶Î¡£
+  - Button: ÓÃÓÚÌá½»ºÍµÚÈı·½µÇÂ¼²Ù×÷¡£
+
+#### 3. ÏìÓ¦Ê½Éè¼Æ
+- **ÎªÊ²Ã´**: ÓÃ»§¿ÉÄÜÔÚ×ÀÃæ»òÒÆ¶¯Éè±¸ÉÏ·ÃÎÊµÇÂ¼Ò³Ãæ¡£
+- **ÊµÏÖ**:
+  - Ê¹ÓÃ min-h-screen ºÍ lex È·±£±íµ¥ÔÚ¸÷ÖÖÆÁÄ»³ß´çÏÂ¶¼ÄÜ´¹Ö±¾ÓÖĞ¡£
+  - Card ×é¼şÉèÖÃÁË max-w-sm£¬È·±£ÔÚ¿íÆÁÉÏ²»»á¹ı·ÖÀ­Éì£¬Í¬Ê±ÔÚÒÆ¶¯Éè±¸ÉÏÄÜ×ÔÊÊÓ¦¿í¶È¡£
+
+### ÓëÆäËûÎÄ¼şµÄ¹ØÁª
+
+| ÎÄ¼ş | Ö°Ôğ | ¹ØÏµ |
+|---|---|---|
+| pp/(auth)/login/page.tsx | µÇÂ¼Ò³ÃæµÄ UI | - Ê¹ÓÃ components/ui/* ÖĞµÄ×é¼ş¹¹½¨½çÃæ¡£<br>- Á´½Óµ½ pp/(auth)/register/page.tsx¡£ |
+| components/ui/button.tsx | °´Å¥×é¼ş | ÎªµÇÂ¼°´Å¥Ìá¹©»ù´¡ÑùÊ½ºÍĞĞÎª¡£ |
+| components/ui/card.tsx | ¿¨Æ¬×é¼ş | ×÷ÎªµÇÂ¼±íµ¥µÄÊÓ¾õÈİÆ÷¡£ |
+| pp/globals.css | È«¾ÖÑùÊ½ºÍÖ÷Ìâ±äÁ¿ | Ìá¹© shadcn/ui ×é¼şËùĞèµÄ»ù´¡ CSS ±äÁ¿£¨Èç --primary, --background µÈ£©¡£ |
+| 	ailwind.config.ts | Tailwind ÅäÖÃ | ½« CSS ±äÁ¿£¨Èç hsl(var(--primary))£©Ó³Éäµ½ Tailwind µÄÑÕÉ«ÏµÍ³ÖĞ¡£ |
+
+### ºóĞø²½Öè (²½Öè 2.5 & 2.6)
+- µ±Ç°µÄµÇÂ¼Ò³ÃæÖ»ÊÇÒ»¸ö¾²Ì¬ UI¡£
+- ÏÂÒ»²½½«Îª "ÓÊÏäµÇÂ¼" ºÍ "GitHub µÇÂ¼" °´Å¥Ìí¼Ó onClick ÊÂ¼ş´¦Àí³ÌĞò¡£
+- ÕâĞ©´¦Àí³ÌĞò½«µ÷ÓÃ lib/supabase.ts ÖĞ´´½¨µÄ Supabase ¿Í»§¶ËµÄ signInWithPassword() ºÍ signInWithOAuth() ·½·¨£¬ÒÔÊµÏÖÕæÕıµÄÓÃ»§ÈÏÖ¤Âß¼­¡£
