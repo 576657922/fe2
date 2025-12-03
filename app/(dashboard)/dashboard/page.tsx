@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -102,18 +103,18 @@ export default function DashboardPage() {
             <CardDescription>选择一个活动开始</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <button className="w-full p-3 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition">
-              <p className="font-semibold text-blue-900">开始刷题</p>
-              <p className="text-sm text-blue-700">浏览题库并做题</p>
-            </button>
-            <button className="w-full p-3 bg-orange-50 hover:bg-orange-100 rounded-lg text-left transition">
-              <p className="font-semibold text-orange-900">查看错题本</p>
-              <p className="text-sm text-orange-700">复习之前做错的题目</p>
-            </button>
-            <button className="w-full p-3 bg-green-50 hover:bg-green-100 rounded-lg text-left transition">
-              <p className="font-semibold text-green-900">开始番茄钟</p>
-              <p className="text-sm text-green-700">专注学习25分钟</p>
-            </button>
+            <Link href="/dashboard/questions" className="block p-3 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition">
+                <p className="font-semibold text-blue-900">开始刷题</p>
+                <p className="text-sm text-blue-700">浏览题库并做题</p>
+            </Link>
+            <Link href="/dashboard/wrong-book" className="block p-3 bg-orange-50 hover:bg-orange-100 rounded-lg text-left transition">
+                <p className="font-semibold text-orange-900">查看错题本</p>
+                <p className="text-sm text-orange-700">复习之前做错的题目</p>
+            </Link>
+            <Link href="/dashboard/pomodoro" className="block p-3 bg-green-50 hover:bg-green-100 rounded-lg text-left transition">
+                <p className="font-semibold text-green-900">开始番茄钟</p>
+                <p className="text-sm text-green-700">专注学习25分钟</p>
+            </Link>
           </CardContent>
         </Card>
       </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Home, FileQuestion, BookX, BarChart3 } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -54,60 +55,72 @@ export default function DashboardLayout({
   };
 
   if (isLoading) {
-    return <div>加载中...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div>加载中...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-8">
-              <Link href="/dashboard" className="font-bold text-lg">
-                FE 刷题平台
-              </Link>
-              <div className="hidden md:flex gap-4">
-                <Link
-                  href="/dashboard"
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  首页
-                </Link>
-                <Link
-                  href="/dashboard/questions"
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  刷题
-                </Link>
-                <Link
-                  href="/dashboard/wrong-book"
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  错题本
-                </Link>
-                <Link
-                  href="/dashboard/stats"
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  数据统计
-                </Link>
-              </div>
-            </div>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white shadow-md flex-shrink-0">
+        <div className="p-4 border-b">
+          <Link href="/dashboard" className="font-bold text-xl">
+            FE 刷题平台
+          </Link>
+        </div>
+        <nav className="p-4 space-y-2">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
+          >
+            <Home className="h-5 w-5" />
+            <span>首页</span>
+          </Link>
+          <Link
+            href="/dashboard/questions"
+            className="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
+          >
+            <FileQuestion className="h-5 w-5" />
+            <span>刷题</span>
+          </Link>
+          <Link
+            href="/dashboard/wrong-book"
+            className="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
+          >
+            <BookX className="h-5 w-5" />
+            <span>错题本</span>
+          </Link>
+          <Link
+            href="/dashboard/stats"
+            className="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
+          >
+            <BarChart3 className="h-5 w-5" />
+            <span>数据统计</span>
+          </Link>
+        </nav>
+      </aside>
+
+      <div className="flex-1 flex flex-col">
+        {/* Top Navigation */}
+        <header className="bg-white shadow-sm border-b">
+          <div className="flex justify-end items-center h-16 px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-4">
-              <span className="text-gray-700">{email}</span>
+              <span className="text-gray-700 hidden sm:inline">{email}</span>
               <Button variant="outline" onClick={handleLogout}>
                 登出
               </Button>
             </div>
           </div>
-        </div>
-      </nav>
+        </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
+        {/* Main Content */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+            {children}
+        </main>
+      </div>
     </div>
   );
 }
