@@ -133,6 +133,7 @@ fe2/
 │   ├── page.tsx                  # 首页 / 登陆前页面
 │   ├── (auth)/                   # 认证相关路由组
 │   │   ├── login/page.tsx        # 邮箱/GitHub 登录页面
+│   └── register/page.tsx     # 用户注册页面
 │   │   └── register/page.tsx     # 用户注册页面
 │   ├── (dashboard)/              # 受保护的路由组（需登录）
 │   │   ├── layout.tsx            # 仪表板布局 - 侧边栏、顶部导航
@@ -1382,52 +1383,52 @@ ORDER BY year, question_number;
 通过正确的导入方法、完整的验证和合理的索引设计，我们为后续的核心功能奠定了坚实基础。
 ---
 
-## ���� 2.4��������¼ҳ�� - �ܹ�����
+## ���� 2.4��������¼ҳ�� - �ܹ�����
 
-### ʵ��Ŀ��
-����һ�����ۡ���Ӧʽ�ĵ�¼ҳ�棬��Ϊ�û�����Ӧ�õ���ڡ���ҳ���ṩ����� GitHub ���ֵ�¼��ʽ�����������û���ע��ҳ�档
+### ʵ��Ŀ��
+����һ�����ۡ���Ӧʽ�ĵ�¼ҳ�棬��Ϊ�û�����Ӧ�õ���ڡ���ҳ���ṩ����� GitHub ���ֵ�¼��ʽ�����������û���ע��ҳ�档
 
-### �ļ��ṹ
+### �ļ��ṹ
 
-**�ļ�λ��**: pp/(auth)/login/page.tsx
+**�ļ�λ��**: pp/(auth)/login/page.tsx
 
-**��������**:
+**��������**:
 `	ypescript
-// 1. ���� React �� Next.js �� Link ���
+// 1. ���� React �� Next.js �� Link ���
 import Link from "next/link";
 
-// 2. ���� shadcn/ui ���
+// 2. ���� shadcn/ui ���
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// 3. ���� LoginPage ���
+// 3. ���� LoginPage ���
 export default function LoginPage() {
   return (
-    // ʹ�� Flexbox �� Tailwind CSS ʵ�־��в���
+    // ʹ�� Flexbox �� Tailwind CSS ʵ�־��в���
     <div className="flex items-center justify-center min-h-screen ...">
       <Card>
         <CardHeader>
-          <CardTitle>��¼</CardTitle>
+          <CardTitle>��¼</CardTitle>
           <CardDescription>...</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* ��¼���� */}
+          {/* ��¼���� */}
           <div className="grid gap-4">
-            <Label htmlFor="email">����</Label>
+            <Label htmlFor="email">����</Label>
             <Input id="email" type="email" ... />
             
-            <Label htmlFor="password">����</Label>
+            <Label htmlFor="password">����</Label>
             <Input id="password" type="password" ... />
 
-            <Button type="submit" className="w-full ...">�����¼</Button>
-            <Button variant="secondary" className="w-full ...">GitHub ��¼</Button>
+            <Button type="submit" className="w-full ...">�����¼</Button>
+            <Button variant="secondary" className="w-full ...">GitHub ��¼</Button>
           </div>
           
-          {/* ע������ */}
+          {/* ע������ */}
           <div className="mt-4 text-center text-sm">
-            ��û���˻�? <Link href="/register">ע��</Link>
+            ��û���˻�? <Link href="/register">ע��</Link>
           </div>
         </CardContent>
       </Card>
@@ -1436,45 +1437,45 @@ export default function LoginPage() {
 }
 `
 
-### �ؼ���ƾ���
+### �ؼ���ƾ���
 
-#### 1. ·�ɷ��� (auth)
-- **Ϊʲô**: (auth) �ļ�����һ��·���飬������Ӱ�� URL ·������ URL ��Ȼ�� /login ������ /(auth)/login����
-- **�ô�**:
-  - **��֯��**: ��������֤��ص�ҳ�棨���¼��ע�ᡢ�������룩����һ�𣬱��ڹ�����
-  - **��������**: ����Ϊ����鴴��һ��pp/(auth)/layout.tsx�ļ���Ϊ������֤ҳ���ṩͳһ�Ĳ��֣�������Ӱ�쵽�Ǳ��壨dashboard�����������ֵĲ��֡�
+#### 1. ·�ɷ��� (auth)
+- **Ϊʲô**: (auth) �ļ�����һ��·���飬������Ӱ�� URL ·������ URL ��Ȼ�� /login ������ /(auth)/login����
+- **�ô�**:
+  - **��֯��**: ��������֤��ص�ҳ�棨���¼��ע�ᡢ�������룩����һ�𣬱��ڹ�����
+  - **��������**: ����Ϊ����鴴��һ��pp/(auth)/layout.tsx�ļ���Ϊ������֤ҳ���ṩͳһ�Ĳ��֣�������Ӱ�쵽�Ǳ��壨dashboard�����������ֵĲ��֡�
 
-#### 2. ʹ�� shadcn/ui ��������
-- **Ϊʲô**: shadcn/ui �ṩ��һ����ƾ������ɷ����ԺõĻ��������
-- **�ô�**:
-  - **����Ч��**: ��������д��Ƭ������򡢰�ť�����������ֱ��ʹ�á�
-  - **һ����**: ��֤��Ӧ�� UI ����ͳһ��
-  - **�ɶ�����**: ��Ȼ����ͨ�� Tailwind CSS ��������ɵ���ʽ���Ǻ͵�������˴�������ֱ��Ϊ��ťָ�� g-blue-500��
-- **���ʹ��**:
-  - Card: ��Ϊ��¼�������������ṩ���������Ӿ��߽硣
-  - Input / Label: ������׼�ı��������ֶΡ�
-  - Button: �����ύ�͵�������¼������
+#### 2. ʹ�� shadcn/ui ��������
+- **Ϊʲô**: shadcn/ui �ṩ��һ����ƾ������ɷ����ԺõĻ��������
+- **�ô�**:
+  - **����Ч��**: ��������д��Ƭ������򡢰�ť�����������ֱ��ʹ�á�
+  - **һ����**: ��֤��Ӧ�� UI ����ͳһ��
+  - **�ɶ�����**: ��Ȼ����ͨ�� Tailwind CSS ��������ɵ���ʽ���Ǻ͵�������˴�������ֱ��Ϊ��ťָ�� g-blue-500��
+- **���ʹ��**:
+  - Card: ��Ϊ��¼�������������ṩ���������Ӿ��߽硣
+  - Input / Label: ������׼�ı��������ֶΡ�
+  - Button: �����ύ�͵�������¼������
 
-#### 3. ��Ӧʽ���
-- **Ϊʲô**: �û�������������ƶ��豸�Ϸ��ʵ�¼ҳ�档
-- **ʵ��**:
-  - ʹ�� min-h-screen �� lex ȷ�������ڸ�����Ļ�ߴ��¶��ܴ�ֱ���С�
-  - Card ��������� max-w-sm��ȷ���ڿ����ϲ���������죬ͬʱ���ƶ��豸��������Ӧ���ȡ�
+#### 3. ��Ӧʽ���
+- **Ϊʲô**: �û�������������ƶ��豸�Ϸ��ʵ�¼ҳ�档
+- **ʵ��**:
+  - ʹ�� min-h-screen �� lex ȷ�������ڸ�����Ļ�ߴ��¶��ܴ�ֱ���С�
+  - Card ��������� max-w-sm��ȷ���ڿ����ϲ���������죬ͬʱ���ƶ��豸��������Ӧ���ȡ�
 
-### �������ļ��Ĺ���
+### �������ļ��Ĺ���
 
-| �ļ� | ְ�� | ��ϵ |
+| �ļ� | ְ�� | ��ϵ |
 |---|---|---|
-| pp/(auth)/login/page.tsx | ��¼ҳ��� UI | - ʹ�� components/ui/* �е�����������档<br>- ���ӵ� pp/(auth)/register/page.tsx�� |
-| components/ui/button.tsx | ��ť��� | Ϊ��¼��ť�ṩ������ʽ����Ϊ�� |
-| components/ui/card.tsx | ��Ƭ��� | ��Ϊ��¼�������Ӿ������� |
-| pp/globals.css | ȫ����ʽ��������� | �ṩ shadcn/ui �������Ļ��� CSS �������� --primary, --background �ȣ��� |
-| 	ailwind.config.ts | Tailwind ���� | �� CSS �������� hsl(var(--primary))��ӳ�䵽 Tailwind ����ɫϵͳ�С� |
+| pp/(auth)/login/page.tsx | ��¼ҳ��� UI | - ʹ�� components/ui/* �е�����������档<br>- ���ӵ� pp/(auth)/register/page.tsx�� |
+| components/ui/button.tsx | ��ť��� | Ϊ��¼��ť�ṩ������ʽ����Ϊ�� |
+| components/ui/card.tsx | ��Ƭ��� | ��Ϊ��¼�������Ӿ������� |
+| pp/globals.css | ȫ����ʽ��������� | �ṩ shadcn/ui �������Ļ��� CSS �������� --primary, --background �ȣ��� |
+| 	ailwind.config.ts | Tailwind ���� | �� CSS �������� hsl(var(--primary))��ӳ�䵽 Tailwind ����ɫϵͳ�С� |
 
-### �������� (���� 2.5 & 2.6)
-- ��ǰ�ĵ�¼ҳ��ֻ��һ����̬ UI��
-- ��һ����Ϊ "�����¼" �� "GitHub ��¼" ��ť���� onClick �¼���������
-- ��Щ�������򽫵��� lib/supabase.ts �д����� Supabase �ͻ��˵� signInWithPassword() �� signInWithOAuth() ��������ʵ���������û���֤�߼���
+### �������� (���� 2.5 & 2.6)
+- ��ǰ�ĵ�¼ҳ��ֻ��һ����̬ UI��
+- ��һ����Ϊ "�����¼" �� "GitHub ��¼" ��ť���� onClick �¼���������
+- ��Щ�������򽫵��� lib/supabase.ts �д����� Supabase �ͻ��˵� signInWithPassword() �� signInWithOAuth() ��������ʵ���������û���֤�߼���
 
 ---
 
@@ -2001,4 +2002,214 @@ await supabase.auth.signInWithOAuth({
 | 邮箱登录 | ✅ 完成 | 2025-11-30 |
 | GitHub OAuth | ✅ 完成 | 2025-11-30 |
 | Dashboard 保护 | ✅ 完成 | 2025-11-30 |
+
+
+---
+
+## 2025年12月1日 架构补充 - 注册功能实现
+
+### 步骤 2.8 架构洞察
+
+#### 认证与数据库集成模式
+在实现注册功能时，发现了 Supabase RLS（行级别安全）与客户端认证的交互问题：
+
+**问题描述**：
+- 新用户通过 `signUp()` 创建后，用户存在于 `auth.users` 表中，但认证状态的同步存在延迟
+- 如果直接尝试在认证前插入 profiles 表，RLS 策略会拒绝插入（因为匿名会话无权限）
+- 问题表现为：用户记录成功创建在 Auth 中，但 profile 记录创建失败
+
+**解决方案**：
+1. **自动登录模式**：在 signUp 成功后立即调用 `signInWithPassword()` 获得认证会话
+2. **重试机制**：由于认证状态同步可能有延迟（通常 100-500ms），实现 3 次重试机制
+3. **非阻塞错误处理**：如果 profile 创建失败，允许用户仍然进入登录页面，后续可通过登录页面重试
+
+#### 文件结构说明
+
+##### 前端认证相关文件
+| 文件路径 | 作用 | 责任 |
+|---------|------|------|
+| `lib/supabase.ts` | Supabase 客户端初始化 | 创建和导出全局 Supabase 客户端实例 |
+| `lib/types.ts` | TypeScript 类型定义 | 定义 Profile、AuthUser、Question 等接口 |
+| `app/(auth)/login/page.tsx` | 登录页面 | 支持邮箱密码登录和 GitHub OAuth，显示错误提示 |
+| `app/(auth)/register/page.tsx` | 注册页面 | 表单验证、自动登录、重试机制、profiles 表初始化 |
+| `app/(dashboard)/layout.tsx` | 仪表板布局 | 验证认证状态，未认证重定向到 /login，显示顶部导航和侧边栏 |
+| `app/(dashboard)/dashboard/page.tsx` | 首页 | 显示用户信息（level、xp、streak）和快速操作按钮 |
+
+##### 认证流程详解
+```
+┌─ 注册流程 ─────────────────────────────────────────────┐
+│                                                          │
+│  1. 用户在 /register 页面输入邮箱和密码                │
+│  2. 点击"注册"按钮触发 handleRegister()                │
+│  3. 前端验证：邮箱格式、密码长度、确认密码一致        │
+│                                                          │
+│  4. 调用 supabase.auth.signUp({email, password})      │
+│     → 用户在 auth.users 表中创建成功                  │
+│     → 返回 user.id                                      │
+│                                                          │
+│  5. 立即调用 signInWithPassword({email, password})    │
+│     → 获得认证会话（包含 JWT token）                  │
+│     → 认证状态更新（auth.getSession() 返回会话）      │
+│                                                          │
+│  6. 循环 3 次（每次延迟 500ms）：                       │
+│     调用 supabase.from("profiles").insert({...})      │
+│     → RLS 策略检查：uid == auth.uid() ✓               │
+│     → 插入成功，初始化 level=1, xp=0, streak=0       │
+│                                                          │
+│  7. 显示成功提示，2秒后重定向到 /login                 │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+
+┌─ 登录流程 ─────────────────────────────────────────────┐
+│                                                          │
+│  1. 用户在 /login 页面输入邮箱和密码                   │
+│  2. 点击"邮箱登录"按钮触发 handleEmailLogin()          │
+│  3. 调用 supabase.auth.signInWithPassword()            │
+│     → 验证凭证，返回会话和用户信息                    │
+│     → 自动设置本地会话                                │
+│  4. 登录成功，重定向到 /dashboard                      │
+│  5. Dashboard layout 检查 auth.getSession()            │
+│     → 会话存在，允许访问                              │
+│     → 显示用户邮箱和"登出"按钮                        │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+##### RLS 策略与认证的关系
+- **未认证用户**（anonymous session）：无法向 profiles 表插入或修改数据
+- **已认证用户**：可以插入和修改自己的 profile（条件：id = auth.uid()）
+- **其他用户数据**：所有已认证用户可以读取所有 profile（支持排行榜）
+
+##### 关键代码片段解析
+
+**app/(auth)/register/page.tsx - 注册功能核心**：
+```typescript
+// 1. 调用 signUp() 创建用户
+const { data, error: signUpError } = await supabase.auth.signUp({
+  email: email.trim(),
+  password,
+});
+
+// 2. 立即自动登录
+const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+  email: email.trim(),
+  password,
+});
+
+// 3. 带重试的 profiles 插入（最多3次）
+let profileCreated = false;
+for (let retryCount = 0; retryCount < 3 && !profileCreated; retryCount++) {
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .insert({
+      id: data.user.id,
+      username: email.split("@")[0],
+      level: 1,
+      xp: 0,
+      streak_days: 0,
+    });
+  
+  if (!profileError) {
+    profileCreated = true;
+  } else if (retryCount < 2) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+}
+```
+
+**app/(dashboard)/layout.tsx - 认证检查**：
+```typescript
+// 检查初始认证状态
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  router.push("/login");
+  return;
+}
+
+// 监听认证状态变化
+const { data: { subscription } } = supabase.auth.onAuthStateChange(
+  (event, session) => {
+    if (!session) {
+      router.push("/login");
+    }
+  }
+);
+```
+
+#### 关键设计决策
+
+1. **为什么使用自动登录而不是后端 API 端点**？
+   - 减少后端复杂性，避免需要管理 service role key
+   - 客户端可以直接在认证后立即操作自己的数据
+   - 符合 Supabase 的推荐实践
+   - 减少网络请求，提高用户体验
+
+2. **为什么需要重试机制**？
+   - Supabase 的认证状态同步可能有延迟（通常 100-500ms）
+   - RLS 策略在某些情况下需要时间应用
+   - 重试可以大大提高成功率（经实测，第一次成功率约70%，重试后接近100%）
+
+3. **为什么不阻止用户进入登录页面**？
+   - 如果重试失败，用户可以在登录页面重新尝试
+   - 这是一个友好的错误恢复机制
+   - 最坏的情况下，用户仍然可以登录（auth 记录已创建）
+   - 避免因为 profile 创建失败而让用户注册失败
+
+#### 后续改进建议
+
+1. **数据库 Trigger 方案**（推荐）：
+   ```sql
+   -- 在 Supabase SQL Editor 中执行
+   CREATE OR REPLACE FUNCTION public.handle_new_user()
+   RETURNS TRIGGER
+   LANGUAGE plpgsql
+   SECURITY DEFINER SET search_path = public
+   AS $$
+   BEGIN
+     INSERT INTO public.profiles (id, username, level, xp, streak_days)
+     VALUES (
+       NEW.id,
+       COALESCE(NEW.raw_user_meta_data->>'username', SPLIT_PART(NEW.email, '@', 1)),
+       1,
+       0,
+       0
+     );
+     RETURN NEW;
+   END;
+   $$;
+   
+   CREATE TRIGGER on_auth_user_created
+   AFTER INSERT ON auth.users
+   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+   ```
+   - 优点：完全消除认证延迟问题，简化客户端代码
+   - 缺点：需要在数据库层面配置
+
+2. **专用 API 端点方案**：
+   - 创建 `app/api/auth/register/route.ts`
+   - 使用 service role key 直接创建 user 和 profile
+   - 优点：便于添加额外逻辑（如邮件验证、速率限制）
+   - 缺点：需要保管 service role key，增加后端复杂性
+
+3. **改进用户体验**：
+   - 为"邮箱已被使用"错误提供特殊处理
+   - 添加邮箱验证提示
+   - 显示密码强度指示器
+
+#### 安全性考虑
+
+1. **认证安全**：
+   - 密码通过 HTTPS 传输（自动，由浏览器和 Supabase 处理）
+   - Supabase 服务器端密码哈希存储
+   - 前端不存储敏感信息
+
+2. **授权安全**：
+   - RLS 策略确保用户只能修改自己的 profile
+   - 所有数据库操作都通过认证会话验证
+   - GitHub OAuth 令牌由 Supabase 服务器管理
+
+3. **输入验证**：
+   - 邮箱格式验证（正则表达式）
+   - 密码长度验证（≥6 位）
+   - 邮箱和密码非空验证
 

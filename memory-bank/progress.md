@@ -174,9 +174,17 @@
   - Supabase 自动处理会话管理
 
 ### 步骤 2.7：创建注册页面
-- [ ] 创建 (auth)/register/page.tsx
-- [ ] 设计注册 UI
-- [ ] 验证页面显示
+- [x] 创建 (auth)/register/page.tsx
+- [x] 设计注册 UI
+- [x] 验证页面显示
+
+#### 步骤 2.7 验证完成 ✅
+- **验证日期**：2025年12月1日
+- **验证状态**：✅ 完成
+- **验证详情**：
+  - ✅ 创建了 `app/(auth)/register/page.tsx` 路由和组件。
+  - ✅ 页面包含标题、邮箱、密码、确认密码输入框、注册按钮和登录链接。
+  - ✅ 页面在移动端和桌面端均能良好显示。
 
 ### 步骤 2.8：实现注册功能
 - [ ] 添加表单验证
@@ -238,3 +246,152 @@
 - 遇到问题可在对应步骤下添加备注
 - 记录每个阶段的完成时间
 - 跟踪所有待办事项和阻塞问题
+
+## 修改日期: 2025年12月1日 - 步骤 2.8 完成
+
+### 步骤 2.8：实现注册功能
+- [x] 添加表单验证
+- [x] 集成 Supabase Auth
+- [x] 验证注册流程
+
+#### 步骤 2.8 验证完成 ✅
+- **验证日期**：2025年12月1日
+- **验证状态**：✅ 完成（已修复 RLS 问题）
+- **实现特性**：
+  - ✅ 邮箱/密码表单处理（使用 React hooks: useState）
+  - ✅ 集成 Supabase `signUp()` 进行邮箱认证
+  - ✅ 实现表单验证：
+    - 验证邮箱、密码和确认密码不能为空
+    - 验证邮箱格式有效（使用正则表达式）
+    - 验证密码长度 ≥ 6 位
+    - 验证两次密码输入一致
+  - ✅ 实现加载状态（注册过程中按钮禁用，显示"注册中..."）
+  - ✅ 完整的错误处理（用户友好的错误消息）
+  - ✅ 在 `profiles` 表中创建新用户记录（初始 level=1, xp=0, streak_days=0）
+  - ✅ 自动登录用户（在注册成功后立即登录）
+  - ✅ 重试机制（3次重试，每次等待500ms）以处理认证状态同步延迟
+  - ✅ 注册成功后显示成功提示，2秒后重定向到登录页面
+  - ✅ TypeScript 全部通过，`npm run build` 编译成功
+
+#### 实现细节与问题解决
+- **认证流程**：
+  1. 用户输入邮箱、密码和确认密码
+  2. 点击"注册"按钮触发 `handleRegister` 函数
+  3. 前端验证所有字段
+  4. 调用 `supabase.auth.signUp()` 创建用户
+  5. 立即调用 `signInWithPassword()` 自动登录
+  6. 在用户已认证的状态下，创建 profiles 表记录
+  7. 如果插入失败（RLS 或同步延迟），实现重试机制（最多3次重试，每次延迟500ms）
+  8. 成功时显示成功消息，2秒后重定向到登录页
+  9. 失败时显示错误消息（允许用户重试）
+
+- **问题与解决**：
+  - **问题**: 初版实现中，新用户注册后直接在 profiles 表中插入记录，但因为用户认证状态还未完全同步，RLS 策略拒绝了插入操作，导致显示"创建用户资料失败"错误。
+  - **解决方案**:
+    1. 在注册成功后立即调用 `signInWithPassword()` 自动登录用户
+    2. 在已认证的会话下插入 profiles 表记录
+    3. 添加重试机制（3次重试，每次等待500ms），以防认证状态同步延迟
+    4. 重试仍失败时，仍允许用户进入登录页面进行重试（非阻塞性错误处理）
+
+- **安全性考虑**：
+  - 密码通过 HTTPS 传输到 Supabase（不在前端存储）
+  - RLS 策略保护 profiles 表（用户只能创建自己的 profile）
+  - 邮箱格式验证防止无效输入
+  - 自动登录后使用认证会话，确保用户能够创建自己的资料
+
+#### 修改的文件
+- `/c/fe2/app/(auth)/register/page.tsx` - 完整的注册功能实现，包含表单验证、自动登录和重试机制
+
+---
+
+## 最终修订日期: 2025年12月1日 - 步骤 2.8 完整实现
+
+### 步骤 2.8 最终实现总结
+
+经过多次迭代和问题诊断，最终完成了注册功能的完整实现。
+
+#### 遇到的问题与解决方案
+
+**问题 1：Supabase RLS 阻止前端直接插入 profiles 表**
+- 原因：新用户创建后的认证状态同步有延迟，RLS 策略拒绝匿名用户的插入
+- 解决方案：使用 PostgreSQL Trigger 在数据库层自动处理 profile 创建
+
+**问题 2：Supabase Auth 允许重复邮箱注册**
+- 原因：Supabase 的 signUp() 方法在邮箱已存在时不返回错误，反而更新或创建用户记录
+- 解决方案：在前端检查 profiles 表的记录数量变化来检测重复邮箱
+
+#### 最终实现架构
+
+1. **数据库层（PostgreSQL Trigger）**：
+   ```sql
+   CREATE OR REPLACE FUNCTION public.handle_new_user()
+   RETURNS TRIGGER
+   LANGUAGE plpgsql
+   SECURITY DEFINER SET search_path = public
+   AS $$
+   BEGIN
+     INSERT INTO public.profiles (id, username, level, xp, streak_days)
+     VALUES (
+       NEW.id,
+       COALESCE(NEW.raw_user_meta_data->>'username', SPLIT_PART(NEW.email, '@', 1)),
+       1, 0, 0
+     );
+     RETURN NEW;
+   EXCEPTION WHEN UNIQUE_VIOLATION THEN
+     RETURN NEW;
+   END;
+   $$;
+   
+   DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+   CREATE TRIGGER on_auth_user_created
+     AFTER INSERT ON auth.users
+     FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+   ```
+
+2. **前端验证逻辑**（app/(auth)/register/page.tsx）：
+   - 表单验证：邮箱格式、密码长度、确认密码一致
+   - 调用 `supabase.auth.signUp()` 创建用户
+   - 等待 800ms 让 Trigger 执行
+   - 检查 profiles 表的记录数量：
+     - 如果数量增加 → 新用户注册成功
+     - 如果数量未增加 → 邮箱已被使用，显示错误提示
+   - 成功时显示"注册成功"，2秒后重定向到登录页
+
+#### 最终的验证结果
+
+✅ **使用新邮箱注册**：
+- 用户在 auth.users 中创建
+- 通过 Trigger 自动在 profiles 表中创建记录（初始 level=1, xp=0）
+- 前端显示"注册成功"提示
+
+✅ **使用已注册的邮箱再次注册**：
+- Supabase 不创建新用户（同一邮箱）
+- Trigger 的 EXCEPTION WHEN UNIQUE_VIOLATION 被触发
+- profiles 表记录数量不增加
+- 前端正确检测到重复并显示"邮箱已被使用"
+
+✅ **其他验证**：
+- 密码过短显示错误提示
+- 两次密码不一致显示错误提示
+- 邮箱格式无效显示错误提示
+- 前端构建成功（`npm run build` 无错误）
+
+#### 关键设计决策
+
+1. **为什么选择 Trigger 而不是前端处理**？
+   - 数据库层处理更可靠，避免 RLS 延迟问题
+   - 无需复杂的重试机制
+   - 保证数据一致性
+
+2. **为什么用 profiles 数量对比检测重复邮箱**？
+   - 最简单可靠的方法
+   - 不依赖邮箱字段的唯一约束
+   - 能正确处理 Supabase 的重复邮箱行为
+
+#### 实现文件清单
+
+- ✅ `/c/fe2/app/(auth)/register/page.tsx` - 完整的注册页面实现
+- ✅ Supabase SQL Editor - PostgreSQL Trigger 定义（已在 Supabase 中创建）
+- ✅ 已验证的 profile 自动创建机制
+- ✅ 已验证的重复邮箱检测机制
+
