@@ -626,3 +626,92 @@ setIsSubmitted(true);
 - ✅ 已验证的 profile 自动创建机制
 - ✅ 已验证的重复邮箱检测机制
 
+---
+
+## 阶段 3：错题本与进度记录
+
+### 步骤 3.1：创建 API 端点 - 获取错题列表
+- [x] 创建 /api/wrong-questions/route.ts 文件
+- [x] 实现 GET 请求处理
+- [x] 验证用户身份（未登录返回 401）
+- [x] 查询 user_progress 表（status='wrong_book'）
+- [x] 联表查询完整题目信息
+- [x] 按 last_attempt_at 降序排列
+- [x] 返回 JSON 格式错题列表
+
+#### 步骤 3.1 验证完成 ✅
+- **验证日期**：2025年12月4日
+- **验证状态**：✅ 完成（已存在完整实现）
+- **实现特性**：
+  - ✅ API 端点 `/api/wrong-questions` 已创建
+  - ✅ 接收 GET 请求并验证用户身份
+  - ✅ 使用 Supabase 服务角色密钥进行数据库查询
+  - ✅ 查询条件：`user_id` = 当前用户 AND `status` = 'wrong_book'
+  - ✅ 联表查询获取完整题目信息（使用 `select('*, questions(...)')`）
+  - ✅ 按 `last_attempt_at` 降序排列（最近错的题在前）
+  - ✅ 返回 JSON 格式：`{ success: true, data: [...], count: N }`
+  - ✅ 完整的错误处理：
+    - 401 Unauthorized（未登录或无效 token）
+    - 500 Internal Server Error（数据库查询失败）
+  - ✅ TypeScript 类型定义完整
+
+#### 实现细节
+- **文件**：`app/api/wrong-questions/route.ts` (150 行)
+- **认证方式**：Bearer token（从 authorization header 获取）
+- **数据库查询**：
+  ```typescript
+  await supabase
+    .from("user_progress")
+    .select(`
+      id, user_id, question_id, user_answer, is_correct,
+      attempt_count, consecutive_correct_count, status,
+      last_attempt_at, created_at,
+      questions (
+        id, year, session, category, question_number,
+        content, option_a, option_b, option_c, option_d,
+        correct_answer, explanation, difficulty, created_at
+      )
+    `)
+    .eq("user_id", userId)
+    .eq("status", "wrong_book")
+    .order("last_attempt_at", { ascending: false });
+  ```
+- **返回格式**：
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": "...",
+        "user_id": "...",
+        "question_id": "...",
+        "user_answer": "A",
+        "is_correct": false,
+        "attempt_count": 3,
+        "consecutive_correct_count": 0,
+        "status": "wrong_book",
+        "last_attempt_at": "2025-12-04T10:30:00Z",
+        "questions": {
+          "id": "...",
+          "year": "2023_Spring",
+          "content": "题目内容...",
+          ...
+        }
+      }
+    ],
+    "count": 15
+  }
+  ```
+
+#### 技术栈
+- **后端**：Next.js API Routes
+- **数据库**：Supabase PostgreSQL
+- **认证**：Supabase Auth (Bearer Token)
+- **类型**：TypeScript
+- **安全**：服务角色密钥（服务器端）+ RLS 策略
+
+#### 关键设计决策
+1. **使用服务角色密钥**：绕过 RLS，确保查询效率
+2. **联表查询**：一次请求获取完整信息，减少前端查询次数
+3. **降序排列**：最近做错的题目排在前面，符合用户复习逻辑
+

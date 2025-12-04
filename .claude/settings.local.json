@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(ls:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(test:*)",
+      "Bash(npx tsc --noEmit)"
     ],
     "deny": [],
     "ask": []

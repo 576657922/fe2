@@ -2673,3 +2673,215 @@ className={`w-full text-left p-4 border-2 rounded-lg transition ${
 ### 总结
 仪表板的布局和首页是用户登录后体验的核心。通过采用可扩展的侧边栏布局、实现强大的路由保护，并提供清晰的用户数据和快速操作入口，我们为后续开发所有核心功能（如刷题、错题本）奠定了坚实的基础。此次重构不仅使实现更贴近设计文档，还修复了关键的导航功能，提升了应用的可用性。
 
+
+---
+
+## 后端 API 路由文档
+
+### 概述
+本项目使用 Next.js API Routes 构建后端 API，所有 API 端点位于 `app/api/` 目录下。每个 API 路由都是独立的 `route.ts` 文件，使用 Supabase 服务角色密钥与数据库交互。
+
+### 通用规范
+
+#### 认证方式
+所有需要用户认证的 API 端点使用 Bearer Token 认证：
+```typescript
+// 前端调用示例
+const token = (await supabase.auth.getSession()).data.session?.access_token;
+fetch('/api/endpoint', {
+  headers: {
+    'authorization': `Bearer ${token}`
+  }
+});
+```
+
+#### 响应格式
+成功响应：
+```json
+{
+  "success": true,
+  "data": {...},
+  "count": 10  // 可选，用于列表数据
+}
+```
+
+错误响应：
+```json
+{
+  "error": "错误信息描述"
+}
+```
+
+#### 错误状态码
+- `401 Unauthorized`: 未登录或 token 无效
+- `403 Forbidden`: 无权限访问资源
+- `404 Not Found`: 资源不存在
+- `500 Internal Server Error`: 服务器内部错误
+
+---
+
+### API 端点详细文档
+
+#### 1. `/api/answers` - 提交答案
+**方法**: `POST`
+**用途**: 提交用户的答案，更新做题记录和用户进度
+
+**请求体**:
+```json
+{
+  "question_id": "uuid",
+  "user_answer": "A",
+  "pomodoro_session_id": "uuid"  // 可选，关联番茄钟
+}
+```
+
+**响应**:
+```json
+{
+  "success": true,
+  "data": {
+    "is_correct": true,
+    "xp_gained": 10,
+    "consecutive_correct": 1,
+    "status": "normal"  // normal | wrong_book | mastered
+  }
+}
+```
+
+**业务逻辑**:
+1. 获取题目并验证答案（支持日文假名转换）
+2. 在 `question_attempts` 表插入历史记录
+3. 在 `user_progress` 表创建/更新汇总记录
+4. 更新连续答对次数和状态
+5. 连续答对 3 次自动升级为 "mastered"
+6. 答对时增加 10 XP
+
+**文件**: `app/api/answers/route.ts`
+**实现日期**: 2025-12-04
+**状态**: ✅ 完成
+
+---
+
+#### 2. `/api/wrong-questions` - 获取错题列表
+**方法**: `GET`
+**用途**: 获取用户所有错题（status='wrong_book'）
+
+**请求参数**: 无
+
+**响应**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "user_id": "uuid",
+      "question_id": "uuid",
+      "user_answer": "A",
+      "is_correct": false,
+      "attempt_count": 3,
+      "consecutive_correct_count": 0,
+      "status": "wrong_book",
+      "last_attempt_at": "2025-12-04T10:30:00Z",
+      "questions": {
+        "id": "uuid",
+        "year": "2023_Spring",
+        "session": "AM",
+        "category": "Security",
+        "question_number": 15,
+        "content": "题目内容...",
+        "option_a": "选项A",
+        "option_b": "选项B",
+        "option_c": "选项C",
+        "option_d": "选项D",
+        "correct_answer": "B",
+        "explanation": "解析内容...",
+        "difficulty": "normal"
+      }
+    }
+  ],
+  "count": 15
+}
+```
+
+**业务逻辑**:
+1. 验证用户身份（Bearer Token）
+2. 查询 `user_progress` 表，筛选条件：
+   - `user_id` = 当前用户
+   - `status` = 'wrong_book'
+3. 联表查询 `questions` 表获取完整题目信息
+4. 按 `last_attempt_at` 降序排列（最近错的在前）
+5. 返回错题列表和总数
+
+**文件**: `app/api/wrong-questions/route.ts`
+**实现日期**: 2025-12-04
+**状态**: ✅ 完成
+
+**特点**:
+- 使用 Supabase 联表查询 `select('*, questions(...)')` 一次获取完整信息
+- 按最近错误时间排序，方便用户优先复习最近的错题
+- 完整的错误处理和类型定义
+
+---
+
+#### 3. `/api/bookmarks` - 书签管理
+**方法**: `POST`, `DELETE`
+**用途**: 添加和删除题目书签
+**状态**: 🔜 待实现（步骤 3.6-3.7）
+
+---
+
+#### 4. `/api/mark-mastered` - 标记已掌握
+**方法**: `POST`
+**用途**: 将错题标记为已掌握状态
+**状态**: 🔜 待实现（步骤 3.3）
+
+---
+
+#### 5. `/api/focus-logs` - 番茄钟记录
+**方法**: `POST`
+**用途**: 保存完成的番茄钟记录
+**状态**: 🔜 待实现（步骤 4.4）
+
+---
+
+### 安全性考虑
+
+1. **服务角色密钥保护**:
+   - 所有 API 使用 `SUPABASE_SERVICE_ROLE_KEY` 进行数据库操作
+   - 密钥只存储在服务器端（`.env.local`，不会泄露到客户端）
+   - 用户无法直接访问或修改秘密密钥
+
+2. **用户认证验证**:
+   - 每个 API 都验证 Bearer Token 的有效性
+   - 使用 `supabase.auth.getUser(token)` 获取真实用户 ID
+   - 拒绝未认证或 token 无效的请求（返回 401）
+
+3. **数据访问控制**:
+   - API 逻辑确保用户只能访问自己的数据
+   - 查询时始终使用 `user_id` 过滤条件
+   - RLS 策略作为额外的安全层
+
+4. **输入验证**:
+   - 验证请求体中的必需字段
+   - 使用 TypeScript 接口确保类型安全
+   - 防止 SQL 注入（使用 Supabase SDK 参数化查询）
+
+5. **错误处理**:
+   - 所有 API 都有完整的 try-catch 错误处理
+   - 错误日志记录到服务器控制台
+   - 向客户端返回用户友好的错误消息（不泄露敏感信息）
+
+### 性能优化
+
+1. **联表查询**: 使用 Supabase 的联表查询功能，一次请求获取关联数据
+2. **索引优化**: 数据库表已创建必要的索引（如 `user_id`, `question_id` 复合索引）
+3. **服务角色密钥**: 绕过 RLS 检查，提升查询性能
+
+### 开发约定
+
+1. **API 路由命名**: 使用 kebab-case（如 `wrong-questions`，不是 `wrongQuestions`）
+2. **类型定义**: 在每个 `route.ts` 文件顶部定义请求和响应的 TypeScript 接口
+3. **错误处理**: 使用统一的错误响应格式
+4. **注释规范**: 每个 API 文件开头添加 JSDoc 注释说明功能、请求、响应格式
+
