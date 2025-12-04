@@ -11,6 +11,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Search, Calendar, List, BrainCircuit, X } from "lucide-react";
 
 interface QuestionListProps {
   initialQuestions: Question[];
@@ -55,73 +58,113 @@ export function QuestionList({
     searchTerm,
   ]);
 
-  return (
-    <div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Input
-          placeholder="Search question content..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <Select value={selectedYear} onValueChange={setSelectedYear}>
-          <SelectTrigger>
-            <SelectValue placeholder="Year" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Years</SelectItem>
-            {years.map((year) => (
-              <SelectItem key={year} value={year}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={selectedCategory}
-          onValueChange={setSelectedCategory}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={selectedDifficulty}
-          onValueChange={setSelectedDifficulty}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Difficulty" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Difficulties</SelectItem>
-            <SelectItem value="easy">Easy</SelectItem>
-            <SelectItem value="normal">Normal</SelectItem>
-            <SelectItem value="hard">Hard</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+  const resetFilters = () => {
+    setSelectedYear("all");
+    setSelectedCategory("all");
+    setSelectedDifficulty("all");
+    setSearchTerm("");
+  };
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredQuestions.length > 0 ? (
-          filteredQuestions.map((question) => (
-            <QuestionCard
-              key={question.id}
-              question={question}
-              isSolved={solvedQuestionIds.has(question.id)}
-            />
-          ))
-        ) : (
-          <p className="col-span-full text-center text-muted-foreground">
-            No questions found matching your criteria.
-          </p>
-        )}
+  return (
+    <div className="space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <List className="h-5 w-5" />
+              Filter Questions
+            </span>
+            <Button variant="ghost" size="sm" onClick={resetFilters}>
+              <X className="h-4 w-4 mr-2" />
+              Clear Filters
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger>
+                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Years</SelectItem>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedCategory}
+              onValueChange={setSelectedCategory}
+            >
+              <SelectTrigger>
+                <List className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedDifficulty}
+              onValueChange={setSelectedDifficulty}
+            >
+              <SelectTrigger>
+                <BrainCircuit className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Difficulty" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Difficulties</SelectItem>
+                <SelectItem value="easy">Easy</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="hard">Hard</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <div>
+        <div className="text-sm text-muted-foreground mb-4">
+          Showing <span className="font-bold text-foreground">{filteredQuestions.length}</span> of <span className="font-bold text-foreground">{initialQuestions.length}</span> questions.
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredQuestions.length > 0 ? (
+            filteredQuestions.map((question) => (
+              <QuestionCard
+                key={question.id}
+                question={question}
+                isSolved={solvedQuestionIds.has(question.id)}
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-16">
+              <p className="text-lg font-medium text-muted-foreground">
+                No questions found.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Try adjusting your filters.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
