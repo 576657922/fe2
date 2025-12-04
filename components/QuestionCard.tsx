@@ -18,7 +18,7 @@ const difficultyVariantMap: { [key: string]: "default" | "secondary" | "destruct
 
 export function QuestionCard({ question, isSolved }: QuestionCardProps) {
   return (
-    <Link href={`/dashboard/questions/${question.year}/${question.id}`} className="block group">
+    <Link href={`/dashboard/${question.year}/${question.id}`} className="block group">
       <Card className="h-full flex flex-col transition-all duration-200 group-hover:shadow-lg group-hover:border-primary">
         <CardHeader>
           <CardTitle className="text-lg leading-tight flex justify-between items-start">
