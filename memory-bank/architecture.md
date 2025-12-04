@@ -2,7 +2,7 @@
 
 ## 当前实现进度
 
-### ✅ 已实现的完整基础设施（步骤 1.1-1.10 及 2.1-2.2 完成 - 15/47 步骤）
+### ✅ 已实现的完整基础设施（步骤 1.1-1.10 及 2.1-2.10 完成 - 23/47 步骤）
 
 #### 前端框架和工具链
 - ✅ **Next.js 14** - 全栈 React 框架，支持 App Router、API Routes、Server Components
@@ -138,7 +138,9 @@ fe2/
 │   ├── (dashboard)/              # 受保护的路由组（需登录）
 │   │   ├── layout.tsx            # 仪表板布局 - 侧边栏、顶部导航
 │   │   ├── dashboard/page.tsx    # 仪表板首页 - 用户信息、今日统计
-│   │   ├── questions/page.tsx    # 题目浏览页 - 筛选题目、列表展示
+│   │   ├── questions/page.tsx    # ✅ 题目浏览页 - 筛选题目、列表展示（步骤 2.10）
+│   │   ├── _components/
+│   │   │   └── question-list.tsx  # 题目列表和筛选组件
 │   │   ├── [year]/[questionId]/page.tsx  # 单题做题页 - 核心做题界面
 │   │   ├── wrong-book/page.tsx   # 错题本页 - 显示所有错题
 │   │   ├── wrong-review/page.tsx # 错题复习页 - 专门复习错题
@@ -153,7 +155,7 @@ fe2/
 │       └── xp/route.ts           # 经验值相关接口
 │
 ├── components/                   # 可复用的 React 组件
-│   ├── QuestionCard.tsx          # 题目卡片 - 在列表中显示单个题目
+│   ├── QuestionCard.tsx          # ✅ 题目卡片 - 在列表中显示单个题目（步骤 2.10）
 │   ├── Pomodoro.tsx              # 番茄钟计时器 - 倒计时 UI 和控制
 │   ├── LevelUpNotification.tsx   # 升级动画通知 - Framer Motion 动画
 │   ├── ProgressBar.tsx           # 进度条 - 用于显示做题进度
@@ -161,14 +163,15 @@ fe2/
 │   ├── auth/
 │   │   ├── LoginForm.tsx         # 登录表单逻辑
 │   │   └── RegisterForm.tsx      # 注册表单逻辑
-│   └── ui/                       # shadcn/ui 组件（已实现 6 个基础组件）
+│   └── ui/                       # shadcn/ui 组件（已实现 7 个基础组件）
 │       ├── button.tsx            # ✅ 按钮组件 - 多种变体（default, destructive, outline, secondary, ghost, link）
 │       ├── card.tsx              # ✅ 卡片组件 - Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent
 │       ├── input.tsx             # ✅ 输入框组件 - 文本输入元素
 │       ├── label.tsx             # ✅ 标签组件 - 表单标签
 │       ├── progress.tsx          # ✅ 进度条组件 - 显示做题进度、升级进度
 │       ├── alert-dialog.tsx      # ✅ 警告对话框 - 确认对话框、警告提示
-│       └── ...待后续添加的组件  # Select, Textarea, Dialog, Tooltip 等
+│       ├── select.tsx            # ✅ 下拉菜单组件 - 题目筛选用（步骤 2.10）
+│       └── ...待后续添加的组件  # Textarea, Dialog, Tooltip 等
 │
 ├── lib/                          # 工具函数和配置
 │   ├── supabase.ts               # ✅ Supabase 客户端 - 单例模式，全局复用
@@ -401,6 +404,115 @@ fe2/
 - 这是从 `focus_sessions` + `question_attempts` 汇总而来的统计表
 - MVP 版本可以不创建此表，改用联表查询即可
 - 如果统计计算变慢，可后续添加此表进行优化
+
+---
+
+## 步骤 2.10 - 题目浏览页面实现详解
+
+### 页面架构（客户端组件模式）
+
+**为什么使用客户端组件？**
+- 初版使用 Next.js 服务端渲染（SSR），在某些情况下会导致 404 错误
+- 改为客户端组件后，数据在浏览器中加载，避免了服务端渲染的问题
+- 更容易显示加载状态和错误处理，提升用户体验
+
+**架构示意图**：
+```
+QuestionsPage (客户端组件 - "use client")
+  ├── useEffect: 页面加载时获取数据
+  │   ├── Supabase.questions.select(*) → 获取所有题目
+  │   ├── Supabase.questions.select(year) → 获取所有年份
+  │   ├── Supabase.questions.select(category) → 获取所有类别
+  │   └── Supabase.user_progress.select(question_id) → 获取已做题 IDs
+  ├── 状态管理 (useState)
+  │   ├── questions: Question[]
+  │   ├── years: string[]
+  │   ├── categories: string[]
+  │   ├── solvedQuestionIds: Set<string>
+  │   ├── isLoading: boolean
+  │   └── error: string | null
+  └── 渲染
+      ├── isLoading → 显示 "加载中..."
+      ├── error → 显示错误提示
+      └── QuestionList 组件 (客户端筛选)
+          ├── 筛选条件 (Select 下拉菜单)
+          │   ├── 年份 (selectedYear)
+          │   ├── 类别 (selectedCategory)
+          │   ├── 难度 (selectedDifficulty)
+          │   └── 搜索 (searchTerm)
+          └── 题目网格 (useMemo 优化)
+              └── 每行 3 个 QuestionCard 组件
+                  ├── 题目标题
+                  ├── 题干预览
+                  ├── 分类标签
+                  └── 已做标记 (绿色 ✓ Solved)
+```
+
+### 数据加载流程
+
+1. **页面挂载** → `useEffect` 触发
+2. **并行查询**（4 个异步请求）
+   - 获取题目列表（按年份降序，题号升序）
+   - 获取所有年份（用于筛选）
+   - 获取所有类别（用于筛选）
+   - 获取用户已做题（用于标记）
+3. **数据处理**
+   - 去重年份和类别
+   - 转换已做题 IDs 为 Set（O(1) 查询性能）
+   - 设置到 state 中
+4. **页面渲染**
+   - 数据加载中：显示加载提示
+   - 加载出错：显示错误信息
+   - 加载成功：显示题目列表
+
+### 筛选逻辑（useMemo 优化）
+
+**筛选流程**：
+```javascript
+filteredQuestions = initialQuestions.filter((question) => {
+  // 4 个独立的筛选条件（都满足才显示）
+  const yearMatch = selectedYear === "all" || question.year === selectedYear;
+  const categoryMatch = selectedCategory === "all" || question.category === selectedCategory;
+  const difficultyMatch = selectedDifficulty === "all" || question.difficulty === selectedDifficulty;
+  const searchTermMatch = searchTerm === "" || question.content.toLowerCase().includes(searchTerm.toLowerCase());
+
+  return yearMatch && categoryMatch && difficultyMatch && searchTermMatch;
+});
+```
+
+**性能优化**：
+- 使用 `useMemo` 缓存计算结果
+- 仅当依赖项变化时重新计算
+- 支持实时搜索和多筛选条件组合
+
+### 已做题标记
+
+**标记方式**：
+```javascript
+// QuestionCard 组件接收 isSolved 属性
+<QuestionCard
+  question={question}
+  isSolved={solvedQuestionIds.has(question.id)}  // Set 的 O(1) 查询
+/>
+
+// 已做题显示绿色勾
+{isSolved && (
+  <span className="text-green-500 text-sm font-medium">
+    ✓ Solved
+  </span>
+)}
+```
+
+### 响应式设计
+
+**网格布局**：
+- 移动端（< 768px）：1 列
+- 平板（768px - 1024px）：2 列
+- 桌面（> 1024px）：3 列
+
+```javascript
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+```
 
 ---
 

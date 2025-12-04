@@ -208,10 +208,61 @@
   - ✅ **构建验证**: 运行 `npm run build` 成功，确认所有更改都没有引入构建时错误。
 
 ### 步骤 2.10：创建题目浏览页面（Questions Browse）
-- [ ] 创建 questions/page.tsx
-- [ ] 添加筛选条件
-- [ ] 显示题目列表
-- [ ] 验证筛选功能
+- [x] 创建 questions/page.tsx
+- [x] 添加筛选条件
+- [x] 显示题目列表
+- [x] 验证筛选功能
+
+#### 步骤 2.10 验证完成 ✅
+- **验证日期**：2025年12月4日
+- **验证状态**：✅ 完成
+- **实现特性**：
+  - ✅ 创建了 `app/(dashboard)/questions/page.tsx` 路由和组件
+  - ✅ 页面包含筛选条件（年份、类别、难度、搜索）
+  - ✅ 页面从数据库动态加载年份和类别选项
+  - ✅ 使用客户端组件（"use client"）在浏览器中加载数据
+  - ✅ 显示加载状态和详细的错误信息
+  - ✅ 已做过的题目显示绿色 "✓ Solved" 标记
+  - ✅ 修改筛选条件后，题目列表实时更新
+  - ✅ 创建了 `_components/question-list.tsx` 客户端筛选组件
+  - ✅ 创建了 `components/QuestionCard.tsx` 题目卡片组件
+  - ✅ 题目卡片显示：题号、年份、题干预览、类别、难度
+  - ✅ 响应式设计（移动端 1 列、平板 2 列、桌面 3 列）
+  - ✅ TypeScript 全部通过，`npm run build` 编译成功
+  - ✅ 所有验证测试通过
+
+#### 实现细节
+- **页面架构**：
+  1. `questions/page.tsx`：客户端组件，使用 useState 管理状态，useEffect 加载数据
+  2. `_components/question-list.tsx`：筛选和列表展示的逻辑组件
+  3. `components/QuestionCard.tsx`：单个题目卡片的展示组件
+
+- **数据流**：
+  1. 页面加载时显示 "加载中..."
+  2. useEffect 钩子调用 Supabase 查询：
+     - 从 questions 表获取所有题目
+     - 从 questions 表获取所有年份
+     - 从 questions 表获取所有类别
+     - 从 user_progress 表获取用户已做题的 IDs
+  3. 数据处理后设置到状态
+  4. QuestionList 组件接收数据并实现客户端筛选
+
+- **筛选功能**：
+  - **年份筛选**：支持按年份选择（从数据库动态获取）
+  - **类别筛选**：支持按类别选择（从数据库动态获取）
+  - **难度筛选**：支持 easy/normal/hard 三个级别选择
+  - **搜索功能**：按题干内容搜索（额外功能）
+
+- **已做题标记**：
+  - 从 user_progress 表查询已做题的 question_id 集合
+  - 在 QuestionCard 中检查 isSolved prop
+  - 已做过的题目显示绿色 "✓ Solved" 标记
+
+- **问题排查**：
+  - 初版使用服务端渲染（async/await）导致 404 错误
+  - **原因**：Next.js 服务端渲染在某些情况下会触发 404，特别是当数据加载失败时
+  - **解决方案**：改为客户端组件，使用 useState/useEffect 在浏览器中加载数据
+  - 添加了加载状态和错误显示，提升用户体验
 
 ### 步骤 2.11：创建做题页面（Question Detail）
 - [ ] 创建 [year]/[questionId]/page.tsx
