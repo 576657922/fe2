@@ -74,21 +74,37 @@ export default function QuestionDetailPage() {
     try {
       setIsSubmitting(true);
 
-      // Check if answer is correct (using normalized answer)
-      const correct = selectedAnswer === normalizedCorrectAnswer;
-      setIsCorrect(correct);
-      setIsSubmitted(true);
-
-      // Get current user
+      // Get current user session to get auth token
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session?.user?.id) {
+      if (!sessionData?.session?.user?.id || !sessionData?.session?.access_token) {
         throw new Error("用户未登录");
       }
 
-      const userId = sessionData.session.user.id;
+      // Call API to save answer attempt
+      const response = await fetch("/api/answers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({
+          question_id: questionId,
+          user_answer: selectedAnswer,
+          pomodoro_session_id: null,
+        }),
+      });
 
-      // TODO: Call API to save answer attempt (step 2.12)
-      // For now, just show the result
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "提交答案失败");
+      }
+
+      const result = await response.json();
+
+      // Check if answer is correct (using API response)
+      const correct = result.is_correct;
+      setIsCorrect(correct);
+      setIsSubmitted(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : "提交失败";
       setError(message);
