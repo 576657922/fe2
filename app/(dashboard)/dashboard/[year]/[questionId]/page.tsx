@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Question, UserProgress } from "@/lib/types";
+import { normalizeAnswer } from "@/lib/utils";
 import Link from "next/link";
 
 export default function QuestionDetailPage() {
@@ -19,6 +20,7 @@ export default function QuestionDetailPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [normalizedCorrectAnswer, setNormalizedCorrectAnswer] = useState<"A" | "B" | "C" | "D" | null>(null);
 
   useEffect(() => {
     const fetchQuestion = async () => {
@@ -42,6 +44,8 @@ export default function QuestionDetailPage() {
         }
 
         setQuestion(data);
+        // 标准化答案格式（支持 ABCD 和日文假名）
+        setNormalizedCorrectAnswer(normalizeAnswer(data.correct_answer));
       } catch (err) {
         const message = err instanceof Error ? err.message : "未知错误";
         setError(message);
@@ -63,15 +67,15 @@ export default function QuestionDetailPage() {
   };
 
   const handleSubmitAnswer = async () => {
-    if (!selectedAnswer || !question) {
+    if (!selectedAnswer || !question || !normalizedCorrectAnswer) {
       return;
     }
 
     try {
       setIsSubmitting(true);
 
-      // Check if answer is correct
-      const correct = selectedAnswer === question.correct_answer;
+      // Check if answer is correct (using normalized answer)
+      const correct = selectedAnswer === normalizedCorrectAnswer;
       setIsCorrect(correct);
       setIsSubmitted(true);
 
@@ -187,7 +191,7 @@ export default function QuestionDetailPage() {
                 className={`w-full text-left p-4 border-2 rounded-lg transition ${
                   selectedAnswer === option.key
                     ? "border-blue-500 bg-blue-50"
-                    : isSubmitted && option.key === question.correct_answer
+                    : isSubmitted && option.key === normalizedCorrectAnswer
                     ? "border-green-500 bg-green-50"
                     : isSubmitted && option.key === selectedAnswer && !isCorrect
                     ? "border-red-500 bg-red-50"
@@ -199,7 +203,7 @@ export default function QuestionDetailPage() {
                     className={`inline-block w-8 h-8 flex items-center justify-center rounded border-2 flex-shrink-0 font-bold ${
                       selectedAnswer === option.key
                         ? "border-blue-500 bg-blue-500 text-white"
-                        : isSubmitted && option.key === question.correct_answer
+                        : isSubmitted && option.key === normalizedCorrectAnswer
                         ? "border-green-500 bg-green-500 text-white"
                         : isSubmitted &&
                           option.key === selectedAnswer &&
@@ -236,7 +240,7 @@ export default function QuestionDetailPage() {
               </p>
               {!isCorrect && (
                 <p className="text-gray-700 mt-2">
-                  正确答案: <span className="font-bold">{question.correct_answer}</span>
+                  正确答案: <span className="font-bold">{normalizedCorrectAnswer}</span>
                 </p>
               )}
             </div>
