@@ -265,10 +265,117 @@
   - 添加了加载状态和错误显示，提升用户体验
 
 ### 步骤 2.11：创建做题页面（Question Detail）
-- [ ] 创建 [year]/[questionId]/page.tsx
-- [ ] 显示题目信息
-- [ ] 添加选项选择
-- [ ] 验证做题界面
+- [x] 创建 [year]/[questionId]/page.tsx
+- [x] 显示题目信息
+- [x] 添加选项选择
+- [x] 验证做题界面
+
+#### 步骤 2.11 验证完成 ✅
+- **验证日期**：2025年12月4日
+- **验证状态**：✅ 完成
+- **实现特性**：
+  - ✅ 创建了 `app/(dashboard)/dashboard/[year]/[questionId]/page.tsx` 动态路由页面
+  - ✅ 从 Supabase 数据库动态加载题目信息（年份、类别、题号、题干、选项、难度、正确答案、解析）
+  - ✅ 页面显示题目的所有信息（年份、会话、类别、难度、题号）
+  - ✅ 实现了四个选项（A、B、C、D）的点击选择功能
+  - ✅ 选中的选项高亮显示（蓝色边框和背景）
+  - ✅ 提交前显示"请选择答案"提示信息
+  - ✅ 实现提交答案按钮逻辑
+  - ✅ 提交后显示答题结果（对/错）
+  - ✅ 答错时显示正确答案
+  - ✅ 显示题目解析（explanation 字段）
+  - ✅ 提交后显示"返回题目列表"和"重新答题"按钮
+  - ✅ 实现了完整的错误处理（题目不存在、加载失败等）
+  - ✅ TypeScript 全部通过，`npm run build` 编译成功
+  - ✅ 所有验证测试通过
+
+#### 实现细节
+- **页面架构**：
+  1. 使用客户端组件（"use client"）在浏览器加载题目数据
+  2. 使用 useState 管理选项选择状态（selectedAnswer）、提交状态（isSubmitted）、答题结果（isCorrect）
+  3. 使用 useEffect 钩子在页面加载时从 Supabase 获取题目信息
+  4. 使用 useParams 获取动态路由参数（year、questionId）
+
+- **数据流**：
+  1. 页面初始化时显示"加载题目中..."
+  2. useEffect 触发，调用 Supabase 查询：`supabase.from("questions").select("*").eq("id", questionId).single()`
+  3. 获取题目数据并设置到状态
+  4. 渲染题目信息和四个选项按钮
+  5. 用户点击选项后，selectedAnswer 状态更新，选项高亮
+  6. 用户点击"提交答案"按钮后：
+     - 比较用户答案与 question.correct_answer
+     - 设置 isCorrect 状态和显示结果
+     - 设置 isSubmitted 状态为 true
+     - 禁用选项按钮（不允许再次选择）
+     - 显示解析信息和操作按钮
+
+- **UI 设计**：
+  - **头部信息卡**：显示年份、会话、类别、难度级别和题号
+  - **题目内容区**：大字体显示题干内容
+  - **选项按钮**：四个可点击的选项按钮，按钮上显示选项标签（A/B/C/D）和选项文本
+  - **选项状态**：
+    - 未选择：灰色边框，hover 时浅灰背景
+    - 已选择：蓝色边框和蓝色背景，白色文字
+    - 提交后（正确答案）：绿色边框和背景
+    - 提交后（错误选项）：红色边框和背景
+  - **结果提示**：绿色（正确）或红色（错误）的提示区域
+  - **解析框**：蓝色背景的题目解析文本框
+
+- **交互流程**：
+  1. **初始状态**：显示"请选择答案"提示，提交按钮禁用
+  2. **选择答案**：点击任意选项后，该选项高亮，提交按钮启用
+  3. **提交答案**：点击提交按钮后，页面显示结果和解析，所有选项按钮禁用
+  4. **继续操作**：
+     - "返回题目列表"：跳转回 `/dashboard/questions` 页面
+     - "重新答题"：重置所有状态（selectedAnswer=null, isSubmitted=false, isCorrect=null），允许重新作答
+
+- **错误处理**：
+  - 题目不存在：显示"题目不存在"错误提示，提供返回按钮
+  - 加载失败：显示具体错误信息，提供返回按钮
+  - 网络错误：使用 try-catch 捕获异常，显示用户友好的错误提示
+
+- **响应式设计**：
+  - 使用 Tailwind CSS 的响应式类实现移动端适配
+  - 最大宽度 4xl（56rem）居中显示，两侧留有边距
+  - 选项按钮在小屏幕上全宽显示
+
+#### 关键代码片段
+
+题目查询逻辑：
+```typescript
+const { data, error: fetchError } = await supabase
+  .from("questions")
+  .select("*")
+  .eq("id", questionId)
+  .single();
+```
+
+选项选择处理：
+```typescript
+const handleSelectAnswer = (answer: "A" | "B" | "C" | "D") => {
+  if (!isSubmitted) {
+    setSelectedAnswer(answer);
+  }
+};
+```
+
+答案提交逻辑：
+```typescript
+const correct = selectedAnswer === question.correct_answer;
+setIsCorrect(correct);
+setIsSubmitted(true);
+```
+
+#### 技术栈
+- **前端框架**：React 18 with Next.js 14
+- **路由**：Next.js 14 App Router 动态路由 `[year]/[questionId]`
+- **状态管理**：React hooks (useState, useEffect)
+- **数据库**：Supabase PostgreSQL
+- **样式**：TailwindCSS
+- **类型检查**：TypeScript
+
+#### 文件列表
+- ✅ `app/(dashboard)/dashboard/[year]/[questionId]/page.tsx` - 做题页面主组件（339 行）
 
 ### 步骤 2.12：实现答案提交逻辑
 - [ ] 创建 /api/answers 端点

@@ -2398,6 +2398,272 @@ Next.js 将 page.tsx (如 dashboard/page.tsx) 作为 {children} 渲染到 <main>
 - **修复**：将其替换为 Next.js 的 `<Link>` 组件，并配置正确的 `href` 属性（如 `/dashboard/questions`）。
 - **设计**：通过为 `<Link>` 添加 `block` 和 `p-3` 等 Tailwind 类，使其在视觉上保持类似按钮/卡片的可点击区域，提升了用户体验。
 
+---
+
+## 步骤 2.11：做题页面 - 架构洞察
+
+### 实现目的
+创建单题做题的核心页面，用户可以在此完整地浏览题目、选择答案、提交并查看结果。这是用户与题库系统的主要交互界面。
+
+### 文件结构与职责
+
+| 文件路径 | 作用 | 核心职责 |
+|---|---|---|
+| `app/(dashboard)/dashboard/[year]/[questionId]/page.tsx` | 做题页面 | 1. **动态路由**：根据 URL 参数（year、questionId）加载特定题目。<br>2. **数据获取**：从 Supabase 查询题目详情（题干、选项、正确答案、解析等）。<br>3. **交互管理**：处理用户的选项点击、答案提交、结果展示。<br>4. **状态管理**：追踪用户的选择状态（selectedAnswer）、提交状态（isSubmitted）、答题结果（isCorrect）。<br>5. **导航**：提供返回题目列表或重新答题的操作入口。|
+
+### 架构设计与决策
+
+#### 1. 动态路由设计：`[year]/[questionId]`
+- **决策**：使用 Next.js 14 App Router 的动态路由方案 `[year]/[questionId]`
+- **参数含义**：
+  - `[year]`：题目的考试年份和会话（如 "2023_Spring"）
+  - `[questionId]`：题目的唯一标识符（UUID）
+- **URL 示例**：`/dashboard/2023_Spring/550e8400-e29b-41d4-a716-446655440000`
+- **原因**：
+  - **RESTful**：符合 REST 资源导向设计，题目作为一个资源，其 ID 在 URL 中体现。
+  - **书签友好**：用户可以书签保存题目，稍后直接访问。
+  - **共享友好**：便于用户复制 URL 分享给其他人。
+  - **浏览器历史**：用户可以通过浏览器后退按钮返回之前的题目。
+
+#### 2. 客户端组件策略
+- **决策**：使用客户端组件（`"use client"` 指令）
+- **原因**：
+  - **状态管理**：需要 `useState` 追踪选项选择、提交状态、答题结果等多个状态。
+  - **交互性**：需要实时响应用户的点击事件。
+  - **条件渲染**：基于不同状态条件渲染不同的 UI（如提交前/提交后）。
+- **生命周期**：
+  ```
+  组件挂载
+      |
+      v
+  useEffect 触发，调用 Supabase 查询题目
+      |
+      v
+  渲染加载状态（"加载题目中..."）
+      |
+  [如果获取成功]
+      |
+      v
+  设置 question 状态，渲染题目信息和选项
+      |
+      v
+  用户点击选项 -> updateSelectedAnswer -> 高亮该选项
+      |
+      v
+  用户点击"提交答案" -> 比较答案 -> 设置 isCorrect 和 isSubmitted
+      |
+      v
+  渲染答题结果、解析、操作按钮
+      |
+      v
+  用户点击"返回"或"重新答题" -> 导航或重置状态
+  ```
+
+#### 3. 数据获取与错误处理
+- **查询方式**：
+  ```typescript
+  const { data, error } = await supabase
+    .from("questions")
+    .select("*")
+    .eq("id", questionId)
+    .single();
+  ```
+  使用 `.single()` 确保只返回一条记录，若无记录会抛出错误。
+
+- **错误场景处理**：
+  - **题目不存在**：questionId 在数据库中找不到 -> 显示"题目不存在"
+  - **网络错误**：Supabase 连接失败 -> 显示具体错误信息
+  - **数据验证**：获取到的数据缺少必要字段 -> 显示"数据异常"
+
+#### 4. 状态管理架构
+```typescript
+// 题目数据状态
+const [question, setQuestion] = useState<Question | null>(null);
+
+// 加载和错误状态
+const [isLoading, setIsLoading] = useState(true);
+const [error, setError] = useState<string | null>(null);
+
+// 用户交互状态
+const [selectedAnswer, setSelectedAnswer] = useState<"A" | "B" | "C" | "D" | null>(null);
+const [isSubmitted, setIsSubmitted] = useState(false);
+const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+const [isSubmitting, setIsSubmitting] = useState(false);
+```
+
+- **为什么分离这些状态**？
+  - `selectedAnswer`：用户当前选择，用于高亮显示
+  - `isSubmitted`：是否已提交，控制是否允许再次选择
+  - `isCorrect`：答题结果，用于显示正确/错误信息
+  - `isSubmitting`：正在提交，用于禁用按钮防止重复提交
+
+#### 5. 选项按钮的视觉状态设计
+```
+┌─ 选项按钮样式映射 ─────────────────────────────────────────────┐
+│                                                                    │
+│  [未选择 & 未提交]                                                │
+│  ├─ 边框：灰色 (border-gray-200)                                  │
+│  ├─ 背景：白色 (hover: bg-gray-50)                               │
+│  └─ 光标：pointer                                                 │
+│                                                                    │
+│  [已选择 & 未提交]                                                │
+│  ├─ 边框：蓝色 (border-blue-500)                                  │
+│  ├─ 背景：浅蓝色 (bg-blue-50)                                     │
+│  ├─ 按钮圆点：蓝色背景 (bg-blue-500)                             │
+│  └─ 光标：pointer                                                 │
+│                                                                    │
+│  [已提交 & 该选项为正确答案]                                      │
+│  ├─ 边框：绿色 (border-green-500)                                 │
+│  ├─ 背景：浅绿色 (bg-green-50)                                    │
+│  ├─ 按钮圆点：绿色背景 (bg-green-500)                            │
+│  └─ 光标：not-allowed                                             │
+│                                                                    │
+│  [已提交 & 用户选中但答错]                                        │
+│  ├─ 边框：红色 (border-red-500)                                   │
+│  ├─ 背景：浅红色 (bg-red-50)                                      │
+│  ├─ 按钮圆点：红色背景 (bg-red-500)                              │
+│  └─ 光标：not-allowed                                             │
+│                                                                    │
+│  [已提交 & 其他选项]                                              │
+│  ├─ 边框：灰色 (border-gray-200)                                  │
+│  ├─ 背景：白色                                                    │
+│  └─ 光标：not-allowed                                             │
+│                                                                    │
+└────────────────────────────────────────────────────────────────┘
+```
+
+#### 6. 答题流程与业务逻辑
+```
+[初始状态]
+│
+├─ selectedAnswer = null
+├─ isSubmitted = false
+├─ isCorrect = null
+└─ 显示提示："请选择答案"，提交按钮禁用
+
+                    ↓ 用户点击选项
+
+[选择答案后]
+│
+├─ selectedAnswer = "A" (或 B/C/D)
+├─ isSubmitted = false
+├─ isCorrect = null
+└─ 提交按钮启用
+
+                    ↓ 用户点击"提交答案"
+
+[提交后]
+│
+├─ 比较逻辑：selectedAnswer === question.correct_answer
+│
+├─ [如果答对]
+│  ├─ isCorrect = true
+│  ├─ 显示："✓ 答案正确！"（绿色）
+│  ├─ 显示解析信息
+│  └─ 所有选项禁用
+│
+└─ [如果答错]
+   ├─ isCorrect = false
+   ├─ 显示："✗ 答案错误"（红色）
+   ├─ 显示："正确答案：X"
+   ├─ 显示解析信息
+   └─ 所有选项禁用
+
+                    ↓ 用户点击按钮
+
+[后续操作]
+│
+├─ "返回题目列表" → router.push('/dashboard/questions')
+└─ "重新答题" → 重置所有状态，允许重新作答
+```
+
+#### 7. 与 QuestionCard 的集成
+- **QuestionCard 的链接**：`href={/dashboard/${question.year}/${question.id}}`
+- **如何协同工作**：
+  1. 用户在 `/dashboard/questions` 浏览题目列表（QuestionCard 展示）
+  2. 点击任何 QuestionCard -> 跳转到 `/dashboard/2023_Spring/550e8400...`
+  3. 做题页面加载该题的详细信息并提供完整的做题体验
+  4. 完成后点击"返回题目列表" -> 回到 `/dashboard/questions`
+
+#### 8. 未来扩展点（用于 Step 2.12）
+当前页面的 `handleSubmitAnswer` 函数中有注释：
+```typescript
+// TODO: Call API to save answer attempt (step 2.12)
+// For now, just show the result
+```
+
+这个地方将在 Step 2.12 中替换为：
+```typescript
+// 调用 API 保存答题记录
+const response = await fetch('/api/answers', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    question_id: questionId,
+    user_answer: selectedAnswer,
+    is_correct: correct,
+  }),
+});
+```
+
+### 关键技术细节
+
+#### 1. Next.js 动态路由的参数获取
+```typescript
+import { useParams } from "next/navigation";
+
+const params = useParams();
+const year = params.year as string;           // "2023_Spring"
+const questionId = params.questionId as string; // UUID
+```
+
+#### 2. 条件渲染与 TypeScript 类型安全
+```typescript
+// 选项的类型安全处理
+type AnswerOption = "A" | "B" | "C" | "D";
+
+const handleSelectAnswer = (answer: AnswerOption) => {
+  if (!isSubmitted) {
+    setSelectedAnswer(answer);
+  }
+};
+```
+
+#### 3. Tailwind CSS 响应式选项按钮
+```typescript
+// 根据状态动态添加类名
+className={`w-full text-left p-4 border-2 rounded-lg transition ${
+  selectedAnswer === option.key
+    ? "border-blue-500 bg-blue-50"
+    : isSubmitted && option.key === question.correct_answer
+    ? "border-green-500 bg-green-50"
+    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+} ${isSubmitted ? "cursor-not-allowed" : "cursor-pointer"}`}
+```
+
+### 性能考虑
+
+1. **单题查询优化**：使用 `.eq("id", questionId)` 精确查询，避免全表扫描
+2. **state 最小化**：只存储必要的状态，避免不必要的 re-renders
+3. **事件处理优化**：`handleSelectAnswer` 和 `handleSubmitAnswer` 都包含状态检查，防止重复操作
+4. **加载与错误状态清晰**：distinct 的三种状态（loading, error, success），用户体验明确
+
+### 安全性考虑
+
+1. **无敏感信息泄露**：页面不存储用户答案到客户端状态外（Step 2.12 会发送到服务器）
+2. **题目数据验证**：通过 TypeScript 接口 `Question` 确保数据完整性
+3. **用户认证**：页面在 `(dashboard)` 路由组下，自动被 layout.tsx 的认证保护
+4. **SQL 注入防护**：使用 Supabase SDK 的参数化查询，自动防护
+
+### 用户体验亮点
+
+1. **清晰的状态反馈**：三阶段展示（选择前、选择后、提交后）
+2. **视觉对比**：不同颜色代表不同状态，易于理解
+3. **防止误操作**：提交后禁用所有选项，防止修改答案
+4. **支持重新练习**："重新答题"按钮允许用户在同一题上反复尝试
+5. **无缝导航**："返回"按钮回到题目列表，继续刷题
+
+
 ### 与其他模块的关联
 - **`lib/supabase.ts`**: `layout.tsx` 和 `page.tsx` 都依赖此文件获取 Supabase 客户端实例以进行认证和数据库查询。
 - **`lib/types.ts`**: `page.tsx` 导入 `Profile` 类型，以确保从数据库获取的数据在组件内部是类型安全的。
