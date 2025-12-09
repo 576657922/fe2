@@ -239,6 +239,7 @@ fe2/
 - `app/api/mark-mastered/route.ts`：标记掌握接口，将指定题目的 `user_progress.status` 设为 `mastered`，被错题本页面和做题页调用后刷新列表/状态。
 - `app/api/bookmarks/route.ts`：书签增删接口，POST 添加（含题目存在校验、幂等 upsert）、DELETE 移除（404/401 清晰错误码），供做题页和书签页调用。
 - `app/api/focus-logs/route.ts`：番茄记录 API，接收 session/统计数据，后端计算完成/正确数（如提供 session），写入 `focus_logs` 并按 25+5×正确数 更新 XP。
+- `app/(dashboard)/dashboard/year-random/page.tsx`：按年份随机刷题页，拉取所选年份全部题目洗牌后逐题作答；复用答题/书签/升级/弹窗逻辑，结束显示本轮正确率。
 - `components/Pomodoro.tsx`：番茄钟主组件，展示时间/进度/完成数，支持开始/暂停/重置、自定义时长与目标文案。
 - `components/PomodoroFloating.tsx`：全局浮窗，跨页面显示剩余时间与进度，可暂停/继续并跳转番茄页，常驻 Dashboard 右下角。
 - `components/LevelUpNotification.tsx`：升级提示动画组件（底部滑入、3 秒自动消失），答对或番茄完成后如升级即弹出。

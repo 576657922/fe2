@@ -1294,6 +1294,13 @@ newStatus = "wrong_book";
 - [x] 无数据/无时间戳时显示友好提示，不影响基础统计卡片
 - [x] **验证完成**：有数据时图表正常渲染，空数据时提示正常
 
+### 年份随机刷题（附加）
+- [x] 新增 `/dashboard/year-random`：按年份拉取全部题目、洗牌后逐题作答，完成即显示正确率
+- [x] 复用答题接口，保留答对弹窗（SuccessModal）、升级提示（LevelUpNotification）
+- [x] 入口：Dashboard 快速开始 + 侧边栏仍保留题库入口
+- [x] 在随机刷题卡片上加入书签按钮，调用 `/api/bookmarks`，状态/错误处理与题库一致
+- [x] **验证完成**：随机刷题整体风格、交互、动画与题库保持一致，书签/提交/完成流程正常
+
 ### 步骤 4.4：创建 API 端点 - 保存番茄钟记录
 - [x] 新增 `/api/focus-logs` POST 端点
 - [x] 接收 duration +（可选）questions_completed/correct_count/pomodoro_session_id

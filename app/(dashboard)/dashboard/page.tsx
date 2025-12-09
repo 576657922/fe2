@@ -128,6 +128,10 @@ export default function DashboardPage() {
                 <p className="font-semibold text-orange-900">查看错题本</p>
                 <p className="text-sm text-orange-700">浏览所有错题列表</p>
             </Link>
+            <Link href="/dashboard/year-random" className="block p-3 bg-purple-50 hover:bg-purple-100 rounded-lg text-left transition">
+                <p className="font-semibold text-purple-900">按年份随机刷题</p>
+                <p className="text-sm text-purple-700">洗牌并做完该年份的全部题目</p>
+            </Link>
             <Link href="/dashboard/pomodoro" className="block p-3 bg-green-50 hover:bg-green-100 rounded-lg text-left transition">
                 <p className="font-semibold text-green-900">开始番茄钟</p>
                 <p className="text-sm text-green-700">专注学习25分钟</p>
