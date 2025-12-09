@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Home, FileQuestion, BookX, BarChart3 } from "lucide-react";
+import { Home, FileQuestion, BookX, BarChart3, BookMarked } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -92,6 +92,13 @@ export default function DashboardLayout({
           >
             <BookX className="h-5 w-5" />
             <span>错题本</span>
+          </Link>
+          <Link
+            href="/dashboard/bookmarks"
+            className="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
+          >
+            <BookMarked className="h-5 w-5" />
+            <span>书签</span>
           </Link>
           <Link
             href="/dashboard/stats"

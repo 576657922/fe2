@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Question, UserProgress } from "@/lib/types";
+import { Question } from "@/lib/types";
 import { normalizeAnswer } from "@/lib/utils";
 import Link from "next/link";
+import { BookmarkPlus, BookmarkCheck } from "lucide-react";
 
 export default function QuestionDetailPage() {
   const router = useRouter();
@@ -22,6 +23,9 @@ export default function QuestionDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [normalizedCorrectAnswer, setNormalizedCorrectAnswer] = useState<"A" | "B" | "C" | "D" | null>(null);
   const [isWrongQuestion, setIsWrongQuestion] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
+  const [bookmarkError, setBookmarkError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchQuestion = async () => {
@@ -89,6 +93,34 @@ export default function QuestionDetailPage() {
 
     if (questionId) {
       checkIfWrongQuestion();
+    }
+  }, [questionId]);
+
+  // 检查是否已加入书签
+  useEffect(() => {
+    const checkBookmark = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const userId = sessionData?.session?.user?.id;
+        if (!userId) return;
+
+        const { data } = await supabase
+          .from("bookmarks")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("question_id", questionId)
+          .maybeSingle();
+
+        if (data) {
+          setIsBookmarked(true);
+        }
+      } catch (err) {
+        console.log("检查书签状态失败:", err);
+      }
+    };
+
+    if (questionId) {
+      checkBookmark();
     }
   }, [questionId]);
 
@@ -185,6 +217,42 @@ export default function QuestionDetailPage() {
     }
   };
 
+  // 加入/取消书签
+  const handleToggleBookmark = async () => {
+    try {
+      setIsBookmarkLoading(true);
+      setBookmarkError(null);
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        setBookmarkError("请先登录");
+        return;
+      }
+
+      const response = await fetch("/api/bookmarks", {
+        method: isBookmarked ? "DELETE" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ question_id: questionId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "操作失败");
+      }
+
+      setIsBookmarked((prev) => !prev);
+    } catch (err) {
+      console.error("书签操作失败:", err);
+      setBookmarkError(err instanceof Error ? err.message : "操作失败，请重试");
+    } finally {
+      setIsBookmarkLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -249,10 +317,37 @@ export default function QuestionDetailPage() {
                   : "困难"}
               </span>
             </div>
-            <div className="text-sm text-gray-600">
-              题号 #{question.question_number}
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-gray-600">
+                题号 #{question.question_number}
+              </div>
+              <button
+                onClick={handleToggleBookmark}
+                disabled={isBookmarkLoading}
+                className={`flex items-center gap-2 text-sm px-3 py-2 rounded border transition ${
+                  isBookmarked
+                    ? "bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
+                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                } ${isBookmarkLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+              >
+                {isBookmarked ? (
+                  <>
+                    <BookmarkCheck className="h-4 w-4" />
+                    已加入书签
+                  </>
+                ) : (
+                  <>
+                    <BookmarkPlus className="h-4 w-4" />
+                    加入书签
+                  </>
+                )}
+              </button>
             </div>
           </div>
+
+          {bookmarkError && (
+            <p className="text-sm text-red-600 mb-3">{bookmarkError}</p>
+          )}
         </div>
 
         {/* Question Content */}
