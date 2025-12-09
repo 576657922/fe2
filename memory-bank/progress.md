@@ -1287,6 +1287,13 @@ newStatus = "wrong_book";
 - [x] SuccessModal 支持“下一题”跳转：按当前年份查找下一题，否则回到题目列表
 - [x] **验证完成**：答对出现动画/弹窗，升级时额外提示，按钮可跳到下一题
 
+### 步骤 4.8：创建简单的进度可视化
+- [x] 在 `stats/page.tsx` 引入 Recharts，新增两块图表
+- [x] 状态分布柱状图：已掌握/错题本/正常 数量
+- [x] 最近作答趋势折线图：按 last_attempt_at 日期聚合的作答数/正确数
+- [x] 无数据/无时间戳时显示友好提示，不影响基础统计卡片
+- [x] **验证完成**：有数据时图表正常渲染，空数据时提示正常
+
 ### 步骤 4.4：创建 API 端点 - 保存番茄钟记录
 - [x] 新增 `/api/focus-logs` POST 端点
 - [x] 接收 duration +（可选）questions_completed/correct_count/pomodoro_session_id

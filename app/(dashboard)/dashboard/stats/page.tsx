@@ -10,6 +10,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+  LineChart,
+  Line,
+} from "recharts";
+import {
   BarChart3,
   Target,
   TrendingUp,
@@ -28,6 +40,12 @@ interface Stats {
   masteredCount: number;
 }
 
+type TrendPoint = {
+  date: string;
+  total: number;
+  correct: number;
+};
+
 export default function StatsPage() {
   const [stats, setStats] = useState<Stats>({
     totalQuestions: 0,
@@ -36,6 +54,10 @@ export default function StatsPage() {
     wrongBookCount: 0,
     masteredCount: 0,
   });
+  const [statusChart, setStatusChart] = useState<
+    { name: string; value: number; color: string }[]
+  >([]);
+  const [trendData, setTrendData] = useState<TrendPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,7 +82,7 @@ export default function StatsPage() {
         // 查询 user_progress 表
         const { data: progressData, error: progressError } = await supabase
           .from("user_progress")
-          .select("*")
+          .select("is_correct,status,last_attempt_at")
           .eq("user_id", userId);
 
         if (progressError) {
@@ -95,6 +117,33 @@ export default function StatsPage() {
         const masteredCount = progressData.filter(
           (item) => item.status === "mastered"
         ).length;
+        const normalCount = Math.max(
+          0,
+          totalQuestions - wrongBookCount - masteredCount
+        );
+
+        const statusRows = [
+          { name: "已掌握", value: masteredCount, color: "#10b981" },
+          { name: "错题本", value: wrongBookCount, color: "#f97316" },
+          { name: "正常", value: normalCount, color: "#3b82f6" },
+        ];
+
+        const trendMap: Record<string, TrendPoint> = {};
+        progressData.forEach((item) => {
+          if (!item.last_attempt_at) return;
+          const d = new Date(item.last_attempt_at);
+          if (Number.isNaN(d.getTime())) return;
+          const key = d.toISOString().slice(0, 10);
+          if (!trendMap[key]) {
+            trendMap[key] = { date: key, total: 0, correct: 0 };
+          }
+          trendMap[key].total += 1;
+          if (item.is_correct) trendMap[key].correct += 1;
+        });
+
+        const trendList = Object.values(trendMap).sort((a, b) =>
+          a.date.localeCompare(b.date)
+        );
 
         setStats({
           totalQuestions,
@@ -103,6 +152,8 @@ export default function StatsPage() {
           wrongBookCount,
           masteredCount,
         });
+        setStatusChart(statusRows);
+        setTrendData(trendList);
       } catch (err) {
         console.error("获取统计数据失败:", err);
         setError(
@@ -294,6 +345,57 @@ export default function StatsPage() {
                   开始刷题
                 </a>
               </div>
+          </CardContent>
+        </Card>
+      </div>
+      )}
+
+      {stats.totalQuestions > 0 && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>状态分布</CardTitle>
+              <CardDescription>已掌握 / 错题本 / 正常</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={statusChart}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="value" fill="#3b82f6" name="数量" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>最近作答趋势</CardTitle>
+              <CardDescription>按日期聚合的作答与正确数</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {trendData.length === 0 ? (
+                <p className="text-sm text-gray-500">暂无时间戳数据可展示</p>
+              ) : (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="total" stroke="#6366f1" name="作答数" />
+                      <Line type="monotone" dataKey="correct" stroke="#22c55e" name="正确数" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

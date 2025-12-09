@@ -230,6 +230,7 @@ fe2/
 - `app/(dashboard)/dashboard/wrong-book/page.tsx`：错题本列表页，从 `/api/wrong-questions` 拉取数据并支持按"最近错误"/"错误次数"排序；提供"再做一遍"跳转与"标记已掌握"操作（调用 `/api/mark-mastered`）。
 - `app/(dashboard)/dashboard/wrong-review/page.tsx`：错题复习模式，按"最近错且复习少"排序逐题展示；提交答案后 2 秒自动切题，支持暂停返回；入口按钮在错题本和 Dashboard 首页。
 - `app/(dashboard)/dashboard/stats/page.tsx`：学习统计页，客户端获取当前用户的 `user_progress`，在前端聚合出总做题数、正确数、正确率、错题本数、掌握数、学习进度 6 张卡片，包含加载/错误/空状态。
+- `app/(dashboard)/dashboard/stats/page.tsx`（图表部分）：使用 Recharts 渲染状态分布柱状图（已掌握/错题本/正常）与作答趋势折线图（按 last_attempt_at 聚合作答数/正确数），无数据时友好提示。
 - `app/(dashboard)/dashboard/[year]/[questionId]/page.tsx`：做题详情页，客户端加载题目与用户进度，处理选项选择、答案提交（调用 `/api/answers`），显示解析，支持"标记已掌握"和返回/重做；新增书签状态检测与加入/取消书签按钮（调用 `/api/bookmarks`）。
 - `app/(dashboard)/dashboard/bookmarks/page.tsx`：书签列表页，展示当前用户收藏的题目；支持按年份/类别筛选、按添加时间排序；提供"做一遍"跳转和"移除书签"操作。
 - `app/(dashboard)/dashboard/pomodoro/page.tsx`：番茄钟页面，挂载计时组件，支持目标描述、自定义时长、开始/暂停/重置，显示完成番茄数与进度。
