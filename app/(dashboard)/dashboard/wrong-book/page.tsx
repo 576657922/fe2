@@ -13,7 +13,8 @@ import {
   Tag,
   XCircle,
   CheckCircle2,
-  ArrowUpDown
+  ArrowUpDown,
+  Check
 } from "lucide-react";
 
 interface WrongQuestion {
@@ -115,6 +116,42 @@ export default function WrongBookPage() {
   // 跳转到做题页面
   const handleRetry = (question: Question) => {
     router.push(`/dashboard/${question.year}/${question.id}`);
+  };
+
+  // 标记已掌握
+  const handleMarkMastered = async (questionId: string) => {
+    try {
+      // 获取当前用户的 session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        alert("请先登录");
+        return;
+      }
+
+      // 调用 API 标记为已掌握
+      const response = await fetch("/api/mark-mastered", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          question_id: questionId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "标记失败");
+      }
+
+      // 成功后刷新错题列表
+      await fetchWrongQuestions();
+    } catch (err) {
+      console.error("标记已掌握失败:", err);
+      alert(err instanceof Error ? err.message : "操作失败，请重试");
+    }
   };
 
   // --- UI 渲染：骨架屏加载状态 ---
@@ -321,13 +358,22 @@ export default function WrongBookPage() {
                   </div>
 
                   {/* 操作按钮 */}
-                  <button
-                    onClick={() => handleRetry(question)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all hover:shadow-lg hover:shadow-blue-200 active:scale-95 text-sm font-medium whitespace-nowrap"
-                  >
-                    <Play className="w-4 h-4" />
-                    再做一遍
-                  </button>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => handleRetry(question)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all hover:shadow-lg hover:shadow-blue-200 active:scale-95 text-sm font-medium whitespace-nowrap"
+                    >
+                      <Play className="w-4 h-4" />
+                      再做一遍
+                    </button>
+                    <button
+                      onClick={() => handleMarkMastered(question.id)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all hover:shadow-lg hover:shadow-green-200 active:scale-95 text-sm font-medium whitespace-nowrap"
+                    >
+                      <Check className="w-4 h-4" />
+                      标记已掌握
+                    </button>
+                  </div>
                 </div>
 
                 {/* 分隔线 */}

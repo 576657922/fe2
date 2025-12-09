@@ -21,6 +21,7 @@ export default function QuestionDetailPage() {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [normalizedCorrectAnswer, setNormalizedCorrectAnswer] = useState<"A" | "B" | "C" | "D" | null>(null);
+  const [isWrongQuestion, setIsWrongQuestion] = useState(false);
 
   useEffect(() => {
     const fetchQuestion = async () => {
@@ -57,6 +58,37 @@ export default function QuestionDetailPage() {
 
     if (questionId) {
       fetchQuestion();
+    }
+  }, [questionId]);
+
+  // 检查是否为错题
+  useEffect(() => {
+    const checkIfWrongQuestion = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData?.session?.user?.id) {
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("user_progress")
+          .select("status")
+          .eq("user_id", sessionData.session.user.id)
+          .eq("question_id", questionId)
+          .eq("status", "wrong_book")
+          .single();
+
+        if (!error && data) {
+          setIsWrongQuestion(true);
+        }
+      } catch (err) {
+        // 忽略错误，不影响主要功能
+        console.log("检查错题状态失败:", err);
+      }
+    };
+
+    if (questionId) {
+      checkIfWrongQuestion();
     }
   }, [questionId]);
 
@@ -105,12 +137,51 @@ export default function QuestionDetailPage() {
       const correct = result.is_correct;
       setIsCorrect(correct);
       setIsSubmitted(true);
+
+      // 如果答案错误，标记为错题
+      if (!correct) {
+        setIsWrongQuestion(true);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "提交失败";
       setError(message);
       console.error("Error submitting answer:", err);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // 标记已掌握
+  const handleMarkMastered = async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session?.access_token) {
+        alert("请先登录");
+        return;
+      }
+
+      const response = await fetch("/api/mark-mastered", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({
+          question_id: questionId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "标记失败");
+      }
+
+      // 成功后更新状态
+      setIsWrongQuestion(false);
+      alert("已标记为掌握！");
+    } catch (err) {
+      console.error("标记已掌握失败:", err);
+      alert(err instanceof Error ? err.message : "操作失败，请重试");
     }
   };
 
@@ -285,24 +356,35 @@ export default function QuestionDetailPage() {
                 {isSubmitting ? "提交中..." : "提交答案"}
               </button>
             ) : (
-              <div className="flex gap-4 w-full">
-                <Link
-                  href="/dashboard/questions"
-                  className="flex-1 text-center bg-gray-500 text-white px-6 py-3 rounded font-bold hover:bg-gray-600 transition"
-                >
-                  返回题目列表
-                </Link>
-                <button
-                  onClick={() => {
-                    // Reset for next question (can be enhanced later)
-                    setSelectedAnswer(null);
-                    setIsSubmitted(false);
-                    setIsCorrect(null);
-                  }}
-                  className="flex-1 bg-blue-500 text-white px-6 py-3 rounded font-bold hover:bg-blue-600 transition"
-                >
-                  重新答题
-                </button>
+              <div className="space-y-4 w-full">
+                <div className="flex gap-4">
+                  <Link
+                    href="/dashboard/questions"
+                    className="flex-1 text-center bg-gray-500 text-white px-6 py-3 rounded font-bold hover:bg-gray-600 transition"
+                  >
+                    返回题目列表
+                  </Link>
+                  <button
+                    onClick={() => {
+                      // Reset for next question (can be enhanced later)
+                      setSelectedAnswer(null);
+                      setIsSubmitted(false);
+                      setIsCorrect(null);
+                    }}
+                    className="flex-1 bg-blue-500 text-white px-6 py-3 rounded font-bold hover:bg-blue-600 transition"
+                  >
+                    重新答题
+                  </button>
+                </div>
+                {/* 如果是错题，显示"标记已掌握"按钮 */}
+                {isWrongQuestion && (
+                  <button
+                    onClick={handleMarkMastered}
+                    className="w-full bg-green-500 text-white px-6 py-3 rounded font-bold hover:bg-green-600 transition"
+                  >
+                    ✓ 标记已掌握
+                  </button>
+                )}
               </div>
             )}
           </div>

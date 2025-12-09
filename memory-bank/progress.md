@@ -821,3 +821,104 @@ newStatus = "wrong_book";
 - ✅ Dashboard layout 已包含错题本导航链接 (`/dashboard/wrong-book`)
 - ✅ 使用 `BookX` 图标标识
 
+---
+
+### 步骤 3.3：实现"标记已掌握"功能
+- [x] 创建 /api/mark-mastered API 端点
+- [x] 在错题本页面添加"标记已掌握"按钮
+- [x] 在做题结果页面添加"标记已掌握"按钮
+- [x] 点击按钮更新 user_progress 状态为 'mastered'
+- [x] 前端刷新错题列表，已掌握的题目消失
+- [x] 处理错误情况
+
+#### 步骤 3.3 验证完成 ✅
+- **验证日期**：2025年12月9日
+- **验证状态**：✅ 完成（用户测试通过）
+- **实现特性**：
+  - ✅ 创建了 `/api/mark-mastered` API 端点
+  - ✅ API 接收 POST 请求，验证用户身份
+  - ✅ API 更新 `user_progress` 表，将 `status` 从 'wrong_book' 改为 'mastered'
+  - ✅ 在错题本页面每个错题卡片上添加"标记已掌握"按钮（绿色渐变）
+  - ✅ 在做题页面提交答案后显示"标记已掌握"按钮（仅对错题显示）
+  - ✅ 点击后自动刷新错题列表，已掌握的题目从错题本中移除
+  - ✅ 错题总数自动更新
+  - ✅ 完整的错误处理和用户提示
+  - ✅ TypeScript 全部通过，`npm run build` 编译成功
+
+#### 实现细节
+- **API 文件**：`app/api/mark-mastered/route.ts` (约 110 行)
+- **前端文件**：
+  1. `app/(dashboard)/dashboard/wrong-book/page.tsx` - 错题本页面（新增 `handleMarkMastered` 函数和绿色按钮）
+  2. `app/(dashboard)/dashboard/[year]/[questionId]/page.tsx` - 做题页面（新增错题检测逻辑和标记按钮）
+
+- **数据流**：
+  1. 用户点击"标记已掌握"按钮
+  2. 前端获取 Supabase session token
+  3. 调用 `/api/mark-mastered` 传递 `question_id` 和 Bearer token
+  4. API 验证用户身份和题目存在性
+  5. API 更新 `user_progress.status` 为 'mastered'
+  6. 前端刷新错题列表（错题本页面）或更新状态（做题页面）
+  7. 题目从错题本中消失
+
+- **错题检测逻辑**（做题页面）：
+  ```typescript
+  // 页面加载时检查是否为错题
+  const { data } = await supabase
+    .from("user_progress")
+    .select("status")
+    .eq("user_id", userId)
+    .eq("question_id", questionId)
+    .eq("status", "wrong_book")
+    .single();
+
+  // 提交答案后，如果答错，自动标记为错题
+  if (!correct) {
+    setIsWrongQuestion(true);
+  }
+  ```
+
+- **UI/UX 设计**：
+  - **错题本页面**：每个错题卡片右上角显示两个按钮
+    - "再做一遍"（蓝色渐变）- 跳转到做题页面
+    - "标记已掌握"（绿色渐变）- 标记为已掌握
+  - **做题页面**：提交答案后，如果是错题，在"返回题目列表"和"重新答题"按钮下方显示
+    - "✓ 标记已掌握"（绿色按钮，全宽）
+  - 点击后显示成功提示"已标记为掌握！"
+  - 错题本页面自动刷新，题目消失
+
+- **状态管理**：
+  - 错题本页面：点击后调用 `fetchWrongQuestions()` 重新加载列表
+  - 做题页面：点击后设置 `setIsWrongQuestion(false)`，按钮消失
+
+#### 技术栈
+- **后端**：Next.js API Routes
+- **数据库**：Supabase PostgreSQL（使用服务角色密钥）
+- **认证**：Supabase Auth (Bearer Token)
+- **前端框架**：React 18 with Next.js 14（客户端组件）
+- **状态管理**：React hooks (useState, useEffect)
+- **样式**：TailwindCSS + Lucide React 图标
+- **类型检查**：TypeScript
+
+#### 关键设计决策
+1. **为什么在两个页面都添加按钮？**
+   - 错题本页面：用户浏览所有错题，可以批量标记已掌握的题目
+   - 做题页面：用户在答题后立即标记，更符合学习流程
+
+2. **为什么使用 'mastered' 状态而不是删除记录？**
+   - 保留学习历史，方便后续统计分析
+   - 用户可能需要回顾已掌握的题目
+   - 符合实施计划中的状态转移设计
+
+3. **错题检测逻辑的两个时机**：
+   - 页面加载时：检查是否已在错题本中（用于显示按钮）
+   - 提交答案后：如果答错，立即标记为错题（立即显示按钮）
+
+#### 验证测试结果
+- ✅ 在错题本页面点击"标记已掌握"，题目从列表中消失
+- ✅ 错题总数减少 1
+- ✅ 在做题页面答错后，显示"标记已掌握"按钮
+- ✅ 点击后，返回错题本页面，该题已移除
+- ✅ 数据库中 `user_progress.status` 字段变为 'mastered'
+- ✅ 前端构建成功（`npm run build` 无错误）
+- ✅ 用户验证通过
+

@@ -2824,17 +2824,86 @@ fetch('/api/endpoint', {
 
 ---
 
-#### 3. `/api/bookmarks` - 书签管理
-**方法**: `POST`, `DELETE`
-**用途**: 添加和删除题目书签
-**状态**: 🔜 待实现（步骤 3.6-3.7）
+#### 3. `/api/mark-mastered` - 标记已掌握
+**方法**: `POST`
+**用途**: 将错题标记为已掌握状态
+
+**请求体**:
+```json
+{
+  "question_id": "uuid-string"
+}
+```
+
+**请求头**:
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**成功响应** (200):
+```json
+{
+  "success": true,
+  "message": "Question marked as mastered",
+  "data": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "question_id": "uuid",
+    "status": "mastered",
+    "attempt_count": 3,
+    "consecutive_correct_count": 2,
+    "last_attempt_at": "2025-12-09T10:30:00Z",
+    ...
+  }
+}
+```
+
+**错误响应**:
+- 401: 未认证或 token 无效
+- 404: 题目不存在于用户进度记录中
+- 500: 服务器内部错误
+
+**业务逻辑**:
+1. 验证用户身份（Bearer Token）
+2. 查询 `user_progress` 表，验证记录存在
+3. 更新 `status` 字段从 'wrong_book' 改为 'mastered'
+4. 返回更新后的记录
+
+**调用示例**:
+```typescript
+const response = await fetch('/api/mark-mastered', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  },
+  body: JSON.stringify({
+    question_id: 'uuid-here',
+  }),
+});
+```
+
+**文件**: `app/api/mark-mastered/route.ts`
+**实现日期**: 2025-12-09
+**状态**: ✅ 完成（步骤 3.3）
+
+**特点**:
+- 简单直接的状态更新逻辑
+- 不删除记录，保留学习历史
+- 前端可立即刷新错题列表
+- 与错题本功能紧密配合
+
+**使用场景**:
+1. 错题本页面：用户浏览错题时批量标记
+2. 做题页面：答题后立即标记已掌握的题目
 
 ---
 
-#### 4. `/api/mark-mastered` - 标记已掌握
-**方法**: `POST`
-**用途**: 将错题标记为已掌握状态
-**状态**: 🔜 待实现（步骤 3.3）
+#### 4. `/api/bookmarks` - 书签管理
+**方法**: `POST`, `DELETE`
+**用途**: 添加和删除题目书签
+**状态**: 🔜 待实现（步骤 3.6-3.7）
 
 ---
 
@@ -3068,15 +3137,195 @@ newStatus = "wrong_book";
 - `app/(dashboard)/layout.tsx` - 侧边栏导航（已包含错题本链接）
 - `lib/types.ts` - 类型定义（Question, UserProgress 等）
 
-#### 下一步建议
+---
+
+## 步骤 3.3：标记已掌握功能（2025-12-09 完成）
+
+### 功能概述
+
+允许用户手动将错题标记为"已掌握"状态，从错题本中移除这些题目。该功能在两个页面实现：
+1. **错题本页面**：批量标记多个已掌握的题目
+2. **做题页面**：答题后立即标记
+
+### 架构设计
+
+#### 核心组件
+
+**1. API 端点**：`/api/mark-mastered`
+- 接收题目 ID
+- 验证用户身份
+- 更新 `user_progress.status` 从 'wrong_book' → 'mastered'
+- 返回更新结果
+
+**2. 前端集成**：
+- 错题本页面：每个错题卡片上显示"标记已掌握"按钮
+- 做题页面：错题提交后显示"标记已掌握"按钮
+
+**3. 状态管理**：
+- 错题检测：页面加载时查询 `user_progress` 表
+- 实时更新：标记后刷新列表或隐藏按钮
+
+#### 数据流
+
+```
+用户点击"标记已掌握"
+    ↓
+前端获取 session token
+    ↓
+调用 /api/mark-mastered (POST)
+    ↓
+API 验证用户身份
+    ↓
+更新 user_progress.status = 'mastered'
+    ↓
+返回成功响应
+    ↓
+前端刷新错题列表或更新状态
+    ↓
+题目从错题本中消失
+```
+
+#### 错题检测逻辑（做题页面）
+
+**时机 1：页面加载时**
+```typescript
+// 检查是否为错题
+const { data } = await supabase
+  .from("user_progress")
+  .select("status")
+  .eq("user_id", userId)
+  .eq("question_id", questionId)
+  .eq("status", "wrong_book")
+  .single();
+
+if (data) {
+  setIsWrongQuestion(true); // 显示"标记已掌握"按钮
+}
+```
+
+**时机 2：提交答案后**
+```typescript
+// 答错时立即标记为错题
+if (!isCorrect) {
+  setIsWrongQuestion(true); // 立即显示按钮
+}
+```
+
+### 关键设计决策
+
+**1. 为什么使用 'mastered' 状态而不是删除记录？**
+- ✅ 保留学习历史，方便后续统计分析
+- ✅ 用户可能需要回顾已掌握的题目
+- ✅ 符合实施计划中的状态机设计（normal → wrong_book → mastered）
+- ✅ 支持未来的功能扩展（如"已掌握题目回顾"）
+
+**2. 为什么在两个页面都实现？**
+- **错题本页面**：
+  - 用户浏览所有错题时，可以批量标记
+  - 适合复习场景：看一遍题目就能判断是否掌握
+- **做题页面**：
+  - 用户答题后立即标记，符合学习流程
+  - 减少操作步骤：不需要返回错题本再标记
+
+**3. 错题检测的两个时机**
+- **页面加载时检测**：用于从错题本跳转过来的场景
+- **提交答案后检测**：用于新答错的题目，立即显示标记选项
+
+### UI/UX 设计
+
+#### 错题本页面
+- **位置**：每个错题卡片右上角
+- **按钮**：
+  - "再做一遍"（蓝色渐变）- 跳转到做题页面
+  - "标记已掌握"（绿色渐变）- 调用 API
+- **交互**：点击后刷新列表，题目消失，错题总数减 1
+
+#### 做题页面
+- **位置**：提交答案后，"返回题目列表"和"重新答题"按钮下方
+- **显示条件**：仅当题目是错题时显示
+- **按钮**：全宽绿色按钮，文字"✓ 标记已掌握"
+- **交互**：点击后提示"已标记为掌握！"，按钮消失
+
+### 实现细节
+
+#### 文件清单
+
+**新增文件**：
+- `app/api/mark-mastered/route.ts` - API 端点（110 行）
+
+**修改文件**：
+- `app/(dashboard)/dashboard/wrong-book/page.tsx`
+  - 新增 `handleMarkMastered` 函数
+  - 新增"标记已掌握"按钮（绿色渐变）
+  - 图标：`Check` from lucide-react
+
+- `app/(dashboard)/dashboard/[year]/[questionId]/page.tsx`
+  - 新增 `isWrongQuestion` 状态
+  - 新增错题检测逻辑（两个 useEffect）
+  - 新增 `handleMarkMastered` 函数
+  - 新增"标记已掌握"按钮（条件渲染）
+
+#### 代码示例
+
+**API 调用**：
+```typescript
+const handleMarkMastered = async (questionId: string) => {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const response = await fetch('/api/mark-mastered', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ question_id: questionId }),
+  });
+
+  if (response.ok) {
+    // 刷新错题列表
+    await fetchWrongQuestions();
+  }
+};
+```
+
+### 架构洞察
+
+**洞察 1：状态机的灵活性**
+- `user_progress.status` 使用有限状态机设计
+- 状态转移：normal ↔ wrong_book ↔ mastered
+- 允许双向转移：答错已掌握的题目会重新进入错题本
+- 符合真实学习场景：遗忘是正常的
+
+**洞察 2：用户操作的即时反馈**
+- 错题本页面：点击后立即刷新列表
+- 做题页面：点击后按钮消失并显示提示
+- 减少用户等待时间，提升体验
+
+**洞察 3：渐进式功能设计**
+- 先实现核心功能（标记已掌握）
+- 后续可扩展：批量标记、撤销标记、已掌握题目列表等
+
+### 验证测试
+
+✅ **功能测试**：
+- 在错题本页面点击"标记已掌握"，题目从列表中消失
+- 错题总数减少 1
+- 在做题页面答错后，显示"标记已掌握"按钮
+- 点击后，返回错题本页面，该题已移除
+
+✅ **数据验证**：
+- 数据库中 `user_progress.status` 字段变为 'mastered'
+- 题目不再出现在 `/api/wrong-questions` 响应中
+
+✅ **构建验证**：
+- TypeScript 类型检查通过
+- `npm run build` 编译成功
+- 无警告和错误
+
+### 下一步建议
 
 **后续功能扩展**：
-1. **步骤 3.3**：实现"标记已掌握"功能
-   - 允许用户手动将错题标记为已掌握
-   - 创建 `/api/mark-mastered` API
-   - 在错题本和做题页面添加按钮
-
-2. **步骤 3.4**：创建错题复习模式
+1. **步骤 3.4**：创建错题复习模式
    - 从错题本中顺序抽题
    - 自动跳转到下一题
    - 提供暂停和继续功能
