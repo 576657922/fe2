@@ -5,8 +5,10 @@ import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Question } from "@/lib/types";
 import { normalizeAnswer } from "@/lib/utils";
+import { LevelUpNotification } from "@/components/LevelUpNotification";
 import Link from "next/link";
 import { BookmarkPlus, BookmarkCheck } from "lucide-react";
+import { SuccessModal } from "@/components/SuccessModal";
 
 export default function QuestionDetailPage() {
   const router = useRouter();
@@ -26,6 +28,10 @@ export default function QuestionDetailPage() {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
   const [bookmarkError, setBookmarkError] = useState<string | null>(null);
+  const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lastXpGained, setLastXpGained] = useState<number>(0);
+  const [isNextLoading, setIsNextLoading] = useState(false);
 
   useEffect(() => {
     const fetchQuestion = async () => {
@@ -130,6 +136,34 @@ export default function QuestionDetailPage() {
     }
   };
 
+  const handleGoNextQuestion = async () => {
+    if (!question) return;
+    setIsNextLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("questions")
+        .select("id, question_number")
+        .eq("year", question.year)
+        .gt("question_number", question.question_number)
+        .order("question_number", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (error || !data?.id) {
+        router.push("/dashboard/questions");
+        return;
+      }
+
+      router.push(`/dashboard/${question.year}/${data.id}`);
+    } catch (err) {
+      console.error("跳转下一题失败", err);
+      router.push("/dashboard/questions");
+    } finally {
+      setShowSuccessModal(false);
+      setIsNextLoading(false);
+    }
+  };
+
   const handleSubmitAnswer = async () => {
     if (!selectedAnswer || !question || !normalizedCorrectAnswer) {
       return;
@@ -169,10 +203,17 @@ export default function QuestionDetailPage() {
       const correct = result.is_correct;
       setIsCorrect(correct);
       setIsSubmitted(true);
+      setLastXpGained(result?.xp_gained ?? 0);
+
+      if (result.level_up && result.new_level) {
+        setLevelUpLevel(result.new_level);
+      }
 
       // 如果答案错误，标记为错题
       if (!correct) {
         setIsWrongQuestion(true);
+      } else {
+        setShowSuccessModal(true);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "提交失败";
@@ -291,6 +332,22 @@ export default function QuestionDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
+        {showSuccessModal && (
+          <SuccessModal
+            isOpen={showSuccessModal}
+            onClose={() => setShowSuccessModal(false)}
+            score={lastXpGained || 10}
+            streak={0}
+            message="解题思路清晰，继续保持！"
+            onNext={handleGoNextQuestion}
+          />
+        )}
+        {levelUpLevel && (
+          <LevelUpNotification
+            level={levelUpLevel}
+            onClose={() => setLevelUpLevel(null)}
+          />
+        )}
         {/* Header */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center justify-between mb-4">

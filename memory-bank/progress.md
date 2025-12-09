@@ -1280,6 +1280,13 @@ newStatus = "wrong_book";
 - [x] **新增**：等级头衔映射 `getLevelTitle`（Lv1-Lv10，含副标题），Dashboard 显示对应称号
 - [x] **验证完成**：题目/番茄更新 XP 后，等级与头衔展示正确
 
+### 步骤 4.7：实现升级提示动画
+- [x] 新增 `components/LevelUpNotification.tsx`（Framer Motion 动画，底部滑入，3s 自动消失）
+- [x] `/api/answers` 与 `/api/focus-logs` 返回 level_up/new_level/new_xp，供前端判断
+- [x] 做题页答对时显示升级提示（如升级）+ 正确弹窗（SuccessModal）
+- [x] SuccessModal 支持“下一题”跳转：按当前年份查找下一题，否则回到题目列表
+- [x] **验证完成**：答对出现动画/弹窗，升级时额外提示，按钮可跳到下一题
+
 ### 步骤 4.4：创建 API 端点 - 保存番茄钟记录
 - [x] 新增 `/api/focus-logs` POST 端点
 - [x] 接收 duration +（可选）questions_completed/correct_count/pomodoro_session_id

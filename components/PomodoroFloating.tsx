@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AlarmClock, Pause, Play } from "lucide-react";
 import { usePomodoroStore } from "@/store/pomodoroStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { LevelUpNotification } from "./LevelUpNotification";
 
 export function PomodoroFloating() {
   const {
@@ -20,6 +21,7 @@ export function PomodoroFloating() {
     sessionsCompleted,
   } = usePomodoroStore();
   const prevSessionsRef = useRef<number>(sessionsCompleted);
+  const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
 
   const active = isRunning || timeLeft !== totalTime;
   const progress = totalTime === 0 ? 0 : Math.round(((totalTime - timeLeft) / totalTime) * 100);
@@ -51,21 +53,27 @@ export function PomodoroFloating() {
         return;
       }
 
-      await fetch("/api/focus-logs", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          duration: totalTime,
-          questions_completed: 0,
-          correct_count: 0,
-          pomodoro_session_id: null,
-        }),
-      }).catch((err) => {
+      try {
+        const res = await fetch("/api/focus-logs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            duration: totalTime,
+            questions_completed: 0,
+            correct_count: 0,
+            pomodoro_session_id: null,
+          }),
+        });
+        const json = await res.json().catch(() => null);
+        if (json?.level_up && json?.new_level) {
+          setLevelUpLevel(json.new_level);
+        }
+      } catch (err) {
         console.error("Failed to send focus log", err);
-      });
+      }
 
       prevSessionsRef.current = sessionsCompleted;
     };
@@ -81,43 +89,48 @@ export function PomodoroFloating() {
   const seconds = (timeLeft % 60).toString().padStart(2, "0");
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <div className="flex items-center gap-3 rounded-full bg-white shadow-lg border px-4 py-2">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" aria-hidden />
-          <AlarmClock className="h-5 w-5 text-emerald-600" aria-hidden />
-          <span className="font-semibold tabular-nums text-lg">
-            {minutes}:{seconds}
-          </span>
-        </div>
+    <>
+      {levelUpLevel && (
+        <LevelUpNotification level={levelUpLevel} onClose={() => setLevelUpLevel(null)} />
+      )}
+      <div className="fixed bottom-4 right-4 z-50">
+        <div className="flex items-center gap-3 rounded-full bg-white shadow-lg border px-4 py-2">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" aria-hidden />
+            <AlarmClock className="h-5 w-5 text-emerald-600" aria-hidden />
+            <span className="font-semibold tabular-nums text-lg">
+              {minutes}:{seconds}
+            </span>
+          </div>
 
-        <div className="hidden sm:flex h-2 w-24 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 transition-all"
-            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-          />
-        </div>
+          <div className="hidden sm:flex h-2 w-24 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 transition-all"
+              style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+            />
+          </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 w-8 p-0"
-            onClick={isRunning ? pause : start}
-            aria-label={isRunning ? "暂停番茄钟" : "继续番茄钟"}
-          >
-            {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-          </Button>
-          <Link
-            href="/dashboard/pomodoro"
-            className={cn(
-              "text-xs font-medium px-3 py-1 rounded-full border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition"
-            )}
-          >
-            查看
-          </Link>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0"
+              onClick={isRunning ? pause : start}
+              aria-label={isRunning ? "暂停番茄钟" : "继续番茄钟"}
+            >
+              {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </Button>
+            <Link
+              href="/dashboard/pomodoro"
+              className={cn(
+                "text-xs font-medium px-3 py-1 rounded-full border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition"
+              )}
+            >
+              查看
+            </Link>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -106,9 +106,16 @@ export async function POST(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
+    let responseLevelUp = false;
+    let responseLevel = undefined;
+    let responseXp = undefined;
+
     if (!profileError && profile) {
       const newXp = (profile.xp || 0) + xpGained;
       const newLevel = calculateLevel(newXp);
+      responseLevelUp = newLevel > (profile.level || 1);
+      responseLevel = newLevel;
+      responseXp = newXp;
 
       const { error: xpUpdateError } = await supabase
         .from("profiles")
@@ -125,6 +132,9 @@ export async function POST(request: NextRequest) {
       xp_gained: xpGained,
       questions_completed: questionsCompleted,
       correct_count: correctCount,
+      level_up: responseLevelUp,
+      new_level: responseLevel,
+      new_xp: responseXp,
     });
   } catch (error) {
     console.error("Error in /api/focus-logs:", error);

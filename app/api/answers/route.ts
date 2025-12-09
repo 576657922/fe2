@@ -226,6 +226,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 第 5 步：更新 profiles 表的 xp（答对时）
+    let responseLevelUp = false;
+    let responseLevel = undefined;
+    let responseXp = undefined;
+
     if (isCorrect) {
       const { data: profile, error: profileFetchError } = await supabase
         .from("profiles")
@@ -236,6 +240,9 @@ export async function POST(request: NextRequest) {
       if (!profileFetchError && profile) {
         const newXp = (profile.xp || 0) + xpGained;
         const newLevel = calculateLevel(newXp);
+        responseLevelUp = newLevel > (profile.level || 1);
+        responseLevel = newLevel;
+        responseXp = newXp;
 
         const { error: xpUpdateError } = await supabase
           .from("profiles")
@@ -258,6 +265,9 @@ export async function POST(request: NextRequest) {
       is_correct: isCorrect,
       xp_gained: isCorrect ? 10 : 0,
       correct_answer: normalizedCorrectAnswer,
+      level_up: responseLevelUp,
+      new_level: responseLevel,
+      new_xp: responseXp,
       message: isCorrect ? "Answer is correct!" : "Answer is incorrect.",
     });
   } catch (error) {

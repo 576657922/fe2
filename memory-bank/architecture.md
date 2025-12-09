@@ -240,8 +240,10 @@ fe2/
 - `app/api/focus-logs/route.ts`：番茄记录 API，接收 session/统计数据，后端计算完成/正确数（如提供 session），写入 `focus_logs` 并按 25+5×正确数 更新 XP。
 - `components/Pomodoro.tsx`：番茄钟主组件，展示时间/进度/完成数，支持开始/暂停/重置、自定义时长与目标文案。
 - `components/PomodoroFloating.tsx`：全局浮窗，跨页面显示剩余时间与进度，可暂停/继续并跳转番茄页，常驻 Dashboard 右下角。
+- `components/LevelUpNotification.tsx`：升级提示动画组件（底部滑入、3 秒自动消失），答对或番茄完成后如升级即弹出。
+- `components/SuccessModal.tsx`：答题正确弹窗，展示积分奖励/连胜，按钮可跳转下一题或查看解析。
 - `store/pomodoroStore.ts`：番茄钟状态与动作（running/timeLeft/totalTime/sessionsCompleted），localStorage 持久化，供页面与浮窗共享。
-- `lib/utils.ts`：通用工具；新增 XP/等级/进度计算（每 500 XP 升一级）和等级头衔映射 `getLevelTitle`（Lv1-Lv10）供 UI 展示
+- `lib/utils.ts`：通用工具；新增 XP/等级/进度计算（每 500 XP 升一级）和等级头衔映射 `getLevelTitle`（Lv1-Lv10）供 UI 展示。
 
 ---
 
