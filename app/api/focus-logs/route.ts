@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { calculateLevel } from "@/lib/utils";
 
 type FocusLogRequest = {
   duration: number;
@@ -98,21 +99,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 更新用户 XP
+    // 更新用户 XP/等级
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("xp")
+      .select("xp, level")
       .eq("id", user.id)
       .single();
 
     if (!profileError && profile) {
+      const newXp = (profile.xp || 0) + xpGained;
+      const newLevel = calculateLevel(newXp);
+
       const { error: xpUpdateError } = await supabase
         .from("profiles")
-        .update({ xp: (profile.xp || 0) + xpGained })
+        .update({ xp: newXp, level: newLevel })
         .eq("id", user.id);
 
       if (xpUpdateError) {
-        console.error("Failed to update XP for focus log", xpUpdateError);
+        console.error("Failed to update XP/level for focus log", xpUpdateError);
       }
     }
 

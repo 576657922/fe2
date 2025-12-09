@@ -1273,6 +1273,13 @@ newStatus = "wrong_book";
 - [x] **新增**：全局浮窗 `components/PomodoroFloating.tsx` 在 Dashboard 右下角显示剩余时间、进度、暂停/继续按钮和“查看”入口
 - [x] **验证**：任意 Dashboard 页面都能看到倒计时并保持同步
 
+### 步骤 4.6：创建经验值和等级系统
+- [x] 定义经验值规则（做对题 +10，完成番茄 +25，每 500 XP 升一级）
+- [x] 在 `lib/utils.ts` 增加等级工具函数：`calculateLevel`、`getXpForNextLevel`、`getProgressToNextLevel`
+- [x] 在 `/api/answers`、`/api/focus-logs` 答对/完成番茄时重算并写入 `profiles.xp/level`
+- [x] **新增**：等级头衔映射 `getLevelTitle`（Lv1-Lv10，含副标题），Dashboard 显示对应称号
+- [x] **验证完成**：题目/番茄更新 XP 后，等级与头衔展示正确
+
 ### 步骤 4.4：创建 API 端点 - 保存番茄钟记录
 - [x] 新增 `/api/focus-logs` POST 端点
 - [x] 接收 duration +（可选）questions_completed/correct_count/pomodoro_session_id

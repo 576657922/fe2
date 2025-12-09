@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { calculateLevel } from "@/lib/utils";
 
 interface AnswerRequest {
   question_id: string;
@@ -228,20 +229,24 @@ export async function POST(request: NextRequest) {
     if (isCorrect) {
       const { data: profile, error: profileFetchError } = await supabase
         .from("profiles")
-        .select("xp")
+        .select("xp, level")
         .eq("id", userId)
         .single();
 
       if (!profileFetchError && profile) {
+        const newXp = (profile.xp || 0) + xpGained;
+        const newLevel = calculateLevel(newXp);
+
         const { error: xpUpdateError } = await supabase
           .from("profiles")
           .update({
-            xp: (profile.xp || 0) + xpGained,
+            xp: newXp,
+            level: newLevel,
           })
           .eq("id", userId);
 
         if (xpUpdateError) {
-          console.error("Error updating XP:", xpUpdateError);
+          console.error("Error updating XP/level:", xpUpdateError);
           // 不返回错误，XP 更新是辅助性的
         }
       }

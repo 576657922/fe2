@@ -241,6 +241,7 @@ fe2/
 - `components/Pomodoro.tsx`：番茄钟主组件，展示时间/进度/完成数，支持开始/暂停/重置、自定义时长与目标文案。
 - `components/PomodoroFloating.tsx`：全局浮窗，跨页面显示剩余时间与进度，可暂停/继续并跳转番茄页，常驻 Dashboard 右下角。
 - `store/pomodoroStore.ts`：番茄钟状态与动作（running/timeLeft/totalTime/sessionsCompleted），localStorage 持久化，供页面与浮窗共享。
+- `lib/utils.ts`：通用工具；新增 XP/等级/进度计算（每 500 XP 升一级）和等级头衔映射 `getLevelTitle`（Lv1-Lv10）供 UI 展示
 
 ---
 

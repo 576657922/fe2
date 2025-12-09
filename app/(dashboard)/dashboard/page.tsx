@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { getLevelTitle } from "@/lib/utils";
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -76,9 +77,21 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">等级</p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    Lv. {profile.level}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-2xl font-bold text-blue-600">
+                      Lv{profile.level}
+                    </p>
+                    <div className="text-sm text-gray-700">
+                      <p className="font-semibold">
+                        {getLevelTitle(profile.level).title}
+                      </p>
+                      {getLevelTitle(profile.level).subtitle && (
+                        <p className="text-xs text-gray-500">
+                          {getLevelTitle(profile.level).subtitle}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">经验值</p>
