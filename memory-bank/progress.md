@@ -1082,3 +1082,98 @@ newStatus = "wrong_book";
 - `app/(dashboard)/dashboard/wrong-book/page.tsx` - 添加"开始复习"按钮
 - `app/(dashboard)/dashboard/page.tsx` - 添加"错题复习"快捷入口
 
+---
+
+### 步骤 3.5：创建进度统计页面（基础版）
+- [x] 创建 stats 文件夹和 stats/page.tsx
+- [x] 显示总做题数
+- [x] 显示总正确数
+- [x] 显示整体正确率
+- [x] 显示错题数
+- [x] 显示已掌握数
+- [x] 使用 shadcn/ui 的 Card 组件展示数据
+- [x] 响应式设计（手机和桌面）
+
+#### 步骤 3.5 验证完成 ✅
+- **验证日期**：2025年12月9日
+- **验证状态**：✅ 完成
+- **实现特性**：
+  - ✅ 创建了 `app/(dashboard)/dashboard/stats/page.tsx` 页面
+  - ✅ 从 `user_progress` 表查询统计数据
+  - ✅ 6个基础统计卡片：
+    - 蓝色：总做题数（统计 user_progress 表记录数）
+    - 绿色：答对题数（统计 is_correct=true 的记录数）
+    - 紫色：整体正确率（正确数/总数 × 100%）
+    - 红色：错题本（统计 status='wrong_book' 的记录数）
+    - 翠绿色：已掌握（统计 status='mastered' 的记录数）
+    - 橙色：学习进度（掌握程度评估）
+  - ✅ 使用 shadcn/ui Card 组件，不同颜色主题和图标
+  - ✅ 响应式网格布局（移动端 1 列，平板 2 列，桌面 3 列）
+  - ✅ 所有卡片都有 hover 阴影效果
+  - ✅ 三种状态处理：
+    - 加载中：显示旋转图标和提示
+    - 错误：红色边框卡片显示错误信息
+    - 空状态：显示友好提示和"开始刷题"按钮
+  - ✅ TypeScript 全部通过，`npm run build` 编译成功
+
+#### 实现细节
+- **文件**：`app/(dashboard)/dashboard/stats/page.tsx` (约 300 行)
+- **数据流**：
+  1. 页面加载时获取 Supabase session token
+  2. 从 `user_progress` 表查询所有记录（`eq("user_id", userId)`）
+  3. 前端聚合计算各项统计数据
+  4. 渲染统计卡片
+
+- **统计计算逻辑**：
+  ```typescript
+  const totalQuestions = progressData.length;
+  const correctQuestions = progressData.filter(item => item.is_correct === true).length;
+  const accuracyRate = totalQuestions > 0 ? Math.round((correctQuestions / totalQuestions) * 100) : 0;
+  const wrongBookCount = progressData.filter(item => item.status === "wrong_book").length;
+  const masteredCount = progressData.filter(item => item.status === "mastered").length;
+  ```
+
+- **UI 设计**：
+  - 页面标题：渐变色（蓝色到紫色）
+  - 统计卡片：使用不同颜色区分不同指标
+  - 图标：使用 Lucide React（BarChart3, CheckCircle2, Target, BookX, TrendingUp）
+  - 响应式：`md:grid-cols-2 lg:grid-cols-3`
+
+#### 技术栈
+- **前端框架**：React 18 with Next.js 14（客户端组件）
+- **状态管理**：React hooks (useState, useEffect)
+- **数据库**：Supabase PostgreSQL（user_progress 表）
+- **样式**：TailwindCSS + shadcn/ui Card 组件
+- **图标**：Lucide React
+- **类型检查**：TypeScript
+
+#### 关键设计决策
+1. **为什么不包含各类别正确率？**
+   - 简化统计页面，专注核心指标
+   - 减少数据库查询复杂度（不需要关联 questions 表）
+   - 保持页面简洁清晰
+
+2. **为什么在前端计算统计数据？**
+   - 数据量较小（每个用户的 user_progress 记录通常 < 1000）
+   - 前端计算更快速，减少 API 调用
+   - 便于后续添加更多计算逻辑
+
+#### 验证测试结果
+- [x] 访问 `/dashboard/stats` 能正常加载
+- [x] 显示的统计数据与数据库查询结果一致
+- [x] 页面在手机和桌面上都能正常显示
+- [x] 空状态显示正确（没有做题记录时）
+- [x] 用户测试通过 ✅
+
+#### 补充记录（最新一次验证）
+- 重新跑 `npm run build`，确认 6 张统计卡片和空状态无 TypeScript/构建错误。
+- 手动检查未登录路径会显示"请先登录"错误提示，确保 session 校验有效。
+- 校验错题本/掌握数与 `/api/wrong-questions` 返回的数据一致，前端汇总逻辑无偏差。
+
+#### 文件清单
+
+**新增文件**：
+- `app/(dashboard)/dashboard/stats/page.tsx` - 统计页面（约 300 行）
+
+**已存在导航**：
+- `app/(dashboard)/layout.tsx` - 侧边栏已包含"数据统计"链接

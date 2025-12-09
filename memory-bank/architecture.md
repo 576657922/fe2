@@ -142,10 +142,10 @@ fe2/
 │   │   ├── _components/
 │   │   │   └── question-list.tsx  # 题目列表和筛选组件
 │   │   ├── [year]/[questionId]/page.tsx  # 单题做题页 - 核心做题界面
-│   │   ├── wrong-book/page.tsx   # 错题本页 - 显示所有错题
-│   │   ├── wrong-review/page.tsx # 错题复习页 - 专门复习错题
-│   │   ├── bookmarks/page.tsx    # 书签页 - 显示收藏题目
-│   │   └── stats/page.tsx        # 统计页 - 图表和数据展示
+│   │   ├── wrong-book/page.tsx   # ✅ 错题本页 - 显示所有错题、标记掌握（步骤 3.2, 3.3）
+│   │   ├── wrong-review/page.tsx # ✅ 错题复习页 - 专门复习错题、自动跳转（步骤 3.4）
+│   │   ├── bookmarks/page.tsx    # 书签页 - 显示收藏题目（步骤 3.9）
+│   │   └── stats/page.tsx        # ✅ 统计页 - 做题数据统计（步骤 3.5）
 │   └── api/                      # 后端 API 路由
 │       ├── answers/route.ts      # 提交答案接口
 │       ├── wrong-questions/route.ts # 获取错题列表接口
@@ -221,6 +221,19 @@ fe2/
 ├── next.config.js                # Next.js 配置
 └── CLAUDE.md                     # Claude Code 项目指南
 ```
+
+---
+
+## 近期实现文件作用（步骤 3.2 - 3.5）
+
+- `app/(dashboard)/layout.tsx`：受保护区域的统一入口，加载 Supabase session，未登录时重定向到 `/login`；渲染侧边栏导航（含错题本、错题复习、统计等入口）和顶部用户信息。
+- `app/(dashboard)/dashboard/wrong-book/page.tsx`：错题本列表页，从 `/api/wrong-questions` 拉取数据并支持按"最近错误"/"错误次数"排序；提供"再做一遍"跳转与"标记已掌握"操作（调用 `/api/mark-mastered`）。
+- `app/(dashboard)/dashboard/wrong-review/page.tsx`：错题复习模式，按"最近错且复习少"排序逐题展示；提交答案后 2 秒自动切题，支持暂停返回；入口按钮在错题本和 Dashboard 首页。
+- `app/(dashboard)/dashboard/stats/page.tsx`：学习统计页，客户端获取当前用户的 `user_progress`，在前端聚合出总做题数、正确数、正确率、错题本数、掌握数、学习进度 6 张卡片，包含加载/错误/空状态。
+- `app/(dashboard)/dashboard/[year]/[questionId]/page.tsx`：做题详情页，客户端加载题目与用户进度，处理选项选择、答案提交（调用 `/api/answers`），显示解析，支持"标记已掌握"和返回/重做。
+- `app/api/answers/route.ts`：提交答案入口，规范化答案后写入 `question_attempts`，更新/创建 `user_progress`（含连对 3 次自动 mastered、XP +10），答错一律标记为 `wrong_book`。
+- `app/api/wrong-questions/route.ts`：错题列表数据接口，按用户过滤 `user_progress` 的 `wrong_book`，联表返回题目信息并按 `last_attempt_at` 降序。
+- `app/api/mark-mastered/route.ts`：标记掌握接口，将指定题目的 `user_progress.status` 设为 `mastered`，被错题本页面和做题页调用后刷新列表/状态。
 
 ---
 
@@ -3748,3 +3761,58 @@ handlePauseReview() {
 - [ADR-002] 使用 Next.js App Router
 - [步骤 3.1] 创建错题列表 API
 
+
+---
+
+### 新增页面：进度统计 (Stats)
+
+**实现日期**：2025-12-09
+**步骤**：3.5
+
+#### 页面职责
+- 显示用户的做题统计数据
+- 展示总做题数、正确数、正确率
+- 显示错题本数量和已掌握题目数
+- 提供学习进度评估
+
+#### 核心功能
+1. **基础统计卡片**（6个）：
+   - 总做题数：统计 user_progress 表记录数
+   - 答对题数：统计 is_correct=true 的记录
+   - 整体正确率：(正确数 / 总数) × 100%
+   - 错题本：统计 status='wrong_book' 的记录
+   - 已掌握：统计 status='mastered' 的记录
+   - 学习进度：掌握程度评估
+
+2. **状态处理**：
+   - 加载中：显示旋转图标
+   - 错误：显示错误提示
+   - 空状态：显示"还没有做题记录"和"开始刷题"按钮
+
+3. **响应式设计**：
+   - 移动端：1列
+   - 平板：2列
+   - 桌面：3列
+   - 所有卡片都有 hover 阴影效果
+
+#### 技术实现
+
+**文件位置**：`app/(dashboard)/dashboard/stats/page.tsx`
+
+**数据流**：
+1. 获取 Supabase session
+2. 查询 user_progress 表：`supabase.from("user_progress").select("*").eq("user_id", userId)`
+3. 前端聚合计算统计数据
+4. 渲染统计卡片
+
+**关键设计决策**：
+- 不包含各类别正确率（简化页面，减少查询复杂度）
+- 前端计算统计数据（数据量小，响应快）
+- 使用 shadcn/ui Card 组件（保持设计一致性）
+
+#### 验证测试结果
+✅ TypeScript 编译通过
+✅ 页面正常渲染
+✅ 响应式布局正常
+✅ 状态处理完整
+✅ 等待用户测试确认
