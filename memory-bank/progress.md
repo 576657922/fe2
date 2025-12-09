@@ -715,3 +715,109 @@ setIsSubmitted(true);
 2. **联表查询**：一次请求获取完整信息，减少前端查询次数
 3. **降序排列**：最近做错的题目排在前面，符合用户复习逻辑
 
+---
+
+### 步骤 3.2：创建错题本页面
+- [x] 创建 wrong-book/page.tsx 文件
+- [x] 显示错题总数
+- [x] 显示错题列表（题号、年份、类别、用户答案、正确答案、最后做错时间）
+- [x] 添加"再做一遍"按钮
+- [x] 实现列表排序功能
+- [x] 处理空状态显示
+
+#### 步骤 3.2 验证完成 ✅
+- **验证日期**：2025年12月9日
+- **验证状态**：✅ 完成（用户测试通过）
+- **实现特性**：
+  - ✅ 创建了 `app/(dashboard)/dashboard/wrong-book/page.tsx` 页面
+  - ✅ 调用 `/api/wrong-questions` API 获取错题数据
+  - ✅ 在头部显示错题总数统计
+  - ✅ 错题列表展示，每条记录包含：
+    - 年份、类别、难度标签（带颜色区分）
+    - 题号信息
+    - 用户答案 vs 正确答案对比（红色/绿色）
+    - 错误次数和最后做错时间（友好时间显示：今天、昨天、N天前）
+    - "再做一遍"按钮（跳转到做题页面）
+  - ✅ 实现排序功能：
+    - 按"最近错误"排序（默认）
+    - 按"错误次数"排序
+  - ✅ 三种状态处理：
+    - 加载中：显示骨架屏动画
+    - 错误：显示错误提示和重试按钮
+    - 空状态：显示友好的"暂无错题"提示和"开始刷题"按钮
+  - ✅ 响应式设计（移动端和桌面适配）
+  - ✅ 与题目浏览页面一致的设计风格（渐变色、卡片、动画）
+  - ✅ TypeScript 全部通过，`npm run build` 编译成功
+
+#### 实现细节
+- **文件**：`app/(dashboard)/dashboard/wrong-book/page.tsx` (约 450 行)
+- **数据流**：
+  1. 页面加载时获取 Supabase session token
+  2. 调用 `/api/wrong-questions` 传递 Bearer token
+  3. API 返回错题列表（包含完整题目信息）
+  4. 前端根据排序选项动态排序数据
+  5. 渲染错题卡片列表
+
+- **排序逻辑**：
+  ```typescript
+  if (sortBy === "recent") {
+    // 按最近错误时间排序（最近的在前）
+    const timeA = a.last_attempt_at ? new Date(a.last_attempt_at).getTime() : 0;
+    const timeB = b.last_attempt_at ? new Date(b.last_attempt_at).getTime() : 0;
+    return timeB - timeA;
+  } else {
+    // 按错误次数排序（错误次数多的在前）
+    return b.attempt_count - a.attempt_count;
+  }
+  ```
+
+- **时间格式化**：
+  - 当天：显示"今天"
+  - 昨天：显示"昨天"
+  - 7天内：显示"N天前"
+  - 超过7天：显示完整日期（YYYY-MM-DD）
+
+- **UI 设计特点**：
+  - 使用渐变色标题（红色到粉色）
+  - 答案对比区域使用红色（错误）和绿色（正确）
+  - 卡片式布局，悬停时有阴影效果
+  - 标签（年份、类别、难度）使用不同颜色区分
+  - "再做一遍"按钮使用渐变蓝色，有动画效果
+
+#### 重要 Bug 修复 🐛
+在实现过程中发现并修复了步骤 2.12 答案提交逻辑的一个重要 bug：
+
+**问题**：当题目状态为 `mastered`（已掌握）时，用户再次答错该题，状态不会变回 `wrong_book`（错题本），这不符合学习逻辑。
+
+**原因**：在 `app/api/answers/route.ts` 第 170-173 行的逻辑中：
+```typescript
+// 答错时，如果不是已掌握，设为错题本
+newStatus =
+  existingProgress.status === "mastered"
+    ? "mastered"
+    : "wrong_book";
+```
+
+**修复**：修改为无论之前是什么状态，答错了都应该标记为错题：
+```typescript
+// 答错时，无论之前是什么状态，都标记为错题本
+// 即使之前是 mastered，答错了也说明还没真正掌握
+newStatus = "wrong_book";
+```
+
+**影响**：
+- ✅ 现在用户答错已掌握的题目时，会重新进入错题本
+- ✅ 更符合真实学习场景（答错说明可能遗忘了）
+- ✅ 错题本功能更加准确和有用
+
+#### 技术栈
+- **前端框架**：React 18 with Next.js 14（客户端组件）
+- **状态管理**：React hooks (useState, useCallback)
+- **API 调用**：fetch with Bearer Token
+- **样式**：TailwindCSS + Lucide React 图标
+- **类型检查**：TypeScript
+
+#### 侧边栏导航
+- ✅ Dashboard layout 已包含错题本导航链接 (`/dashboard/wrong-book`)
+- ✅ 使用 `BookX` 图标标识
+

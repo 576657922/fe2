@@ -2885,3 +2885,272 @@ fetch('/api/endpoint', {
 3. **错误处理**: 使用统一的错误响应格式
 4. **注释规范**: 每个 API 文件开头添加 JSDoc 注释说明功能、请求、响应格式
 
+
+---
+
+## 步骤 3.2 实现总结（2025-12-09）
+
+### 新增页面：错题本 (Wrong Book)
+
+#### 文件路径
+`app/(dashboard)/dashboard/wrong-book/page.tsx`
+
+#### 页面职责
+展示用户所有答错的题目，帮助用户针对性地复习薄弱知识点。
+
+#### 核心功能
+1. **错题数据获取**：
+   - 调用 `/api/wrong-questions` API
+   - 使用 Bearer Token 认证
+   - 获取 status='wrong_book' 的所有题目
+
+2. **数据展示**：
+   - 错题总数统计（头部显示）
+   - 每道错题的详细信息：
+     * 年份、类别、难度标签
+     * 题号
+     * 用户答案 vs 正确答案对比
+     * 错误次数统计
+     * 最后做错时间（友好格式）
+   - "再做一遍"按钮（跳转到做题页面）
+
+3. **排序功能**：
+   - 按"最近错误"排序（默认）
+   - 按"错误次数"排序
+   - 客户端动态排序，无需重新请求
+
+4. **状态处理**：
+   - **加载中**：骨架屏动画
+   - **错误**：错误提示 + 重试按钮
+   - **空状态**：友好提示 + 引导按钮
+
+#### 技术实现要点
+
+**1. 时间格式化逻辑**
+```typescript
+const formatDate = (dateString: string | null) => {
+  if (!dateString) return "未知时间";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "今天";
+  if (diffDays === 1) return "昨天";
+  if (diffDays < 7) return `${diffDays}天前`;
+
+  return date.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+};
+```
+
+**2. 排序实现**
+```typescript
+const sortedQuestions = [...wrongQuestions].sort((a, b) => {
+  if (sortBy === "recent") {
+    const timeA = a.last_attempt_at ? new Date(a.last_attempt_at).getTime() : 0;
+    const timeB = b.last_attempt_at ? new Date(b.last_attempt_at).getTime() : 0;
+    return timeB - timeA;
+  } else {
+    return b.attempt_count - a.attempt_count;
+  }
+});
+```
+
+**3. API 调用模式**
+```typescript
+const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+const response = await fetch("/api/wrong-questions", {
+  method: "GET",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${session.access_token}`,
+  },
+});
+```
+
+#### UI/UX 设计原则
+
+1. **一致性**：
+   - 与题目浏览页面使用相同的设计风格
+   - 相同的卡片布局、渐变色、动画效果
+   - 统一的图标和颜色语言
+
+2. **视觉层次**：
+   - 使用渐变色标题（红色→粉色）突出错题本概念
+   - 答案对比使用红色（错误）和绿色（正确）
+   - 重要信息（错误次数、时间）使用加粗字体
+
+3. **响应式设计**：
+   - 移动端：单列布局
+   - 桌面端：保持良好的阅读宽度
+   - 标签和按钮自适应屏幕尺寸
+
+4. **用户引导**：
+   - 空状态时提供明确的下一步操作
+   - 加载状态显示骨架屏而非空白
+   - 错误状态提供重试选项
+
+#### 关键架构洞察
+
+**洞察 1：客户端排序 vs 服务端排序**
+- **选择**：客户端排序
+- **理由**：
+  * 错题数量通常不多（< 100 条）
+  * 避免每次切换排序都发起网络请求
+  * 提升用户体验（即时响应）
+  * 减轻服务器负载
+
+**洞察 2：友好时间显示的重要性**
+- **实现**：相对时间（今天、昨天、N天前）
+- **优势**：
+  * 更直观（"今天"比"2025-12-09"更清晰）
+  * 符合用户心智模型
+  * 帮助用户快速识别最近的错题
+
+**洞察 3：空状态设计的影响**
+- **不良实践**：显示"暂无数据"
+- **最佳实践**：
+  * 积极的反馈（"太棒了！"）
+  * 明确的下一步操作（"开始刷题"按钮）
+  * 视觉愉悦（绿色勾选图标）
+- **结果**：将消极信息转化为正向激励
+
+**洞察 4：与 API 的解耦设计**
+- 页面不依赖 API 的具体实现细节
+- 通过 TypeScript 接口定义数据结构
+- API 变化时只需修改接口，页面逻辑无需改动
+
+#### 关键 Bug 修复
+
+**问题**：步骤 2.12 答案提交逻辑中，已掌握的题目答错后不会重新进入错题本
+
+**定位**：`app/api/answers/route.ts` 第 170-173 行
+```typescript
+// ❌ 错误逻辑
+newStatus =
+  existingProgress.status === "mastered"
+    ? "mastered"
+    : "wrong_book";
+```
+
+**修复**：
+```typescript
+// ✅ 正确逻辑
+// 答错时，无论之前是什么状态，都标记为错题本
+// 即使之前是 mastered，答错了也说明还没真正掌握
+newStatus = "wrong_book";
+```
+
+**影响范围**：
+- 用户体验改善：答错已掌握的题目会重新进入错题本
+- 学习逻辑更合理：遗忘的知识点会被重新追踪
+- 错题本功能更准确
+
+**教训**：
+- 状态机设计需要考虑所有可能的状态转移
+- 已掌握（mastered）不应该是"终态"
+- 学习是一个循环过程，遗忘是正常的
+
+#### 文件清单
+
+**新增文件**：
+- `app/(dashboard)/dashboard/wrong-book/page.tsx` - 错题本页面（450+ 行）
+
+**修改文件**：
+- `app/api/answers/route.ts` - 修复答错题目的状态转移逻辑
+
+**相关文件**：
+- `app/api/wrong-questions/route.ts` - 错题列表 API（已存在）
+- `app/(dashboard)/layout.tsx` - 侧边栏导航（已包含错题本链接）
+- `lib/types.ts` - 类型定义（Question, UserProgress 等）
+
+#### 下一步建议
+
+**后续功能扩展**：
+1. **步骤 3.3**：实现"标记已掌握"功能
+   - 允许用户手动将错题标记为已掌握
+   - 创建 `/api/mark-mastered` API
+   - 在错题本和做题页面添加按钮
+
+2. **步骤 3.4**：创建错题复习模式
+   - 从错题本中顺序抽题
+   - 自动跳转到下一题
+   - 提供暂停和继续功能
+
+3. **性能优化**：
+   - 如果错题数量 > 100，考虑分页加载
+   - 添加虚拟滚动（react-window）
+
+4. **数据统计**：
+   - 按类别统计错题分布
+   - 显示最常错的知识点
+   - 错题复习进度追踪
+
+#### 开发者笔记
+
+**时间复杂度**：
+- 数据获取：O(n) - 数据库查询
+- 排序：O(n log n) - JavaScript sort
+- 渲染：O(n) - React 列表渲染
+
+**空间复杂度**：
+- O(n) - 存储错题列表
+
+**可扩展性考虑**：
+- 当前实现适合错题数 < 500 的场景
+- 超过 500 条建议实现分页或虚拟滚动
+- 排序功能可以扩展到按难度、按类别等
+
+**代码质量**：
+- TypeScript 严格模式通过
+- 无 ESLint 警告
+- 构建成功（npm run build）
+- 遵循项目代码规范
+
+---
+
+### 架构决策记录 (ADR) - 错题本页面
+
+**决策日期**：2025-12-09  
+**决策人**：开发团队  
+**状态**：已实施
+
+#### 背景
+需要实现错题本功能，让用户可以查看和复习所有答错的题目。
+
+#### 决策
+1. 使用客户端组件（"use client"）实现页面
+2. 调用现有的 `/api/wrong-questions` API 获取数据
+3. 在客户端实现排序功能
+4. 使用与题目浏览页面一致的设计风格
+5. 实现三种状态：加载中、错误、空状态
+
+#### 考虑的方案
+
+**方案 A：服务端渲染 (SSR)**
+- 优点：SEO 友好，初始加载快
+- 缺点：排序需要重新请求，交互体验差
+- 结论：❌ 不适合
+
+**方案 B：客户端渲染 (CSR)** ✅
+- 优点：排序即时响应，用户体验好
+- 缺点：需要 loading 状态
+- 结论：✅ 采用
+
+**方案 C：混合渲染**
+- 优点：兼顾 SEO 和交互
+- 缺点：实现复杂度高
+- 结论：❌ 过度设计
+
+#### 结果
+成功实现错题本页面，用户测试通过，功能完整，体验流畅。
+
+#### 相关决策
+- [ADR-001] 使用 Supabase 作为后端服务
+- [ADR-002] 使用 Next.js App Router
+- [步骤 3.1] 创建错题列表 API
+

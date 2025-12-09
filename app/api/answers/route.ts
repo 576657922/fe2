@@ -166,11 +166,9 @@ export async function POST(request: NextRequest) {
       } else {
         // 答错时，重置连续答对计数
         consecutiveCorrectCount = 0;
-        // 答错时，如果不是已掌握，设为错题本
-        newStatus =
-          existingProgress.status === "mastered"
-            ? "mastered"
-            : "wrong_book";
+        // 答错时，无论之前是什么状态，都标记为错题本
+        // 即使之前是 mastered，答错了也说明还没真正掌握
+        newStatus = "wrong_book";
       }
 
       const { error: updateError } = await supabase
