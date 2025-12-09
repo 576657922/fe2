@@ -1253,3 +1253,30 @@ newStatus = "wrong_book";
 
 **导航更新**：
 - `app/(dashboard)/layout.tsx` - 侧边栏新增"书签"入口
+---
+
+## 阶段 4：番茄钟与基础统计
+
+### 步骤 4.1：创建 Zustand 状态管理 - Pomodoro Store
+- [x] 创建 `store/pomodoroStore.ts`，包含 isRunning、timeLeft、totalTime、sessionsCompleted 及 start/pause/reset/setTotalTime/decrementTime/completeSession 方法
+- [x] 使用 localStorage 持久化，刷新后状态不丢失
+- [x] **验证**：跨页面共享同一计时状态
+
+### 步骤 4.2：创建 Pomodoro 计时器组件
+- [x] 新增 `components/Pomodoro.tsx`，展示剩余时间、进度条、今日完成番茄数、目标描述，自定义 1~180 分钟时长
+- [x] 新增页面 `app/(dashboard)/dashboard/pomodoro/page.tsx`，挂载计时组件并提供入口文案
+- [x] **验证**：番茄页计时正常，界面支持开始/暂停/重置/时长设置
+
+### 步骤 4.3：实现实际的倒计时逻辑
+- [x] 将倒计时核心逻辑放入全局浮窗，确保离开番茄页也持续递减
+- [x] 计时归零时自动 completeSession（累加完成数、重置时间、停止运行）
+- [x] **新增**：全局浮窗 `components/PomodoroFloating.tsx` 在 Dashboard 右下角显示剩余时间、进度、暂停/继续按钮和“查看”入口
+- [x] **验证**：任意 Dashboard 页面都能看到倒计时并保持同步
+
+### 步骤 4.4：创建 API 端点 - 保存番茄钟记录
+- [x] 新增 `/api/focus-logs` POST 端点
+- [x] 接收 duration +（可选）questions_completed/correct_count/pomodoro_session_id
+- [x] 若提供 session_id，后端查询 `question_attempts` 计算完成/正确数；否则使用前端传值
+- [x] 写入 `focus_logs`，并按公式计算 XP：25 + correct_count*5，同步更新 profiles.xp
+- [x] 返回保存结果与 xp_gained，401/500 明确错误响应
+- [x] **验证完成**：番茄结束后由全局浮窗自动调用 API，跨页面可产生 focus_logs 记录

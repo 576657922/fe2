@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { PomodoroFloating } from "@/components/PomodoroFloating";
 import { Home, FileQuestion, BookX, BarChart3, BookMarked } from "lucide-react";
 
 export default function DashboardLayout({
@@ -128,6 +129,8 @@ export default function DashboardLayout({
             {children}
         </main>
       </div>
+
+      <PomodoroFloating />
     </div>
   );
 }

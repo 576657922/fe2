@@ -193,7 +193,7 @@ fe2/
 │       └── ...其他工具函数
 │
 ├── store/                        # Zustand 状态管理
-│   ├── pomodoroStore.ts          # 番茄钟状态 - 倒计时、运行状态、历史记录
+│   ├── pomodoroStore.ts          # 番茄钟状态（倒计时、运行状态、完成番茄数），localStorage 持久化，供页面与浮窗共享
 │   ├── quizStore.ts              # 做题状态 - 当前题目、答案、进度
 │   ├── authStore.ts              # 认证状态 - 用户信息、登录状态
 │   └── appStore.ts               # 应用全局状态 - 主题、通知等
@@ -232,10 +232,15 @@ fe2/
 - `app/(dashboard)/dashboard/stats/page.tsx`：学习统计页，客户端获取当前用户的 `user_progress`，在前端聚合出总做题数、正确数、正确率、错题本数、掌握数、学习进度 6 张卡片，包含加载/错误/空状态。
 - `app/(dashboard)/dashboard/[year]/[questionId]/page.tsx`：做题详情页，客户端加载题目与用户进度，处理选项选择、答案提交（调用 `/api/answers`），显示解析，支持"标记已掌握"和返回/重做；新增书签状态检测与加入/取消书签按钮（调用 `/api/bookmarks`）。
 - `app/(dashboard)/dashboard/bookmarks/page.tsx`：书签列表页，展示当前用户收藏的题目；支持按年份/类别筛选、按添加时间排序；提供"做一遍"跳转和"移除书签"操作。
+- `app/(dashboard)/dashboard/pomodoro/page.tsx`：番茄钟页面，挂载计时组件，支持目标描述、自定义时长、开始/暂停/重置，显示完成番茄数与进度。
 - `app/api/answers/route.ts`：提交答案入口，规范化答案后写入 `question_attempts`，更新/创建 `user_progress`（含连对 3 次自动 mastered、XP +10），答错一律标记为 `wrong_book`。
 - `app/api/wrong-questions/route.ts`：错题列表数据接口，按用户过滤 `user_progress` 的 `wrong_book`，联表返回题目信息并按 `last_attempt_at` 降序。
 - `app/api/mark-mastered/route.ts`：标记掌握接口，将指定题目的 `user_progress.status` 设为 `mastered`，被错题本页面和做题页调用后刷新列表/状态。
 - `app/api/bookmarks/route.ts`：书签增删接口，POST 添加（含题目存在校验、幂等 upsert）、DELETE 移除（404/401 清晰错误码），供做题页和书签页调用。
+- `app/api/focus-logs/route.ts`：番茄记录 API，接收 session/统计数据，后端计算完成/正确数（如提供 session），写入 `focus_logs` 并按 25+5×正确数 更新 XP。
+- `components/Pomodoro.tsx`：番茄钟主组件，展示时间/进度/完成数，支持开始/暂停/重置、自定义时长与目标文案。
+- `components/PomodoroFloating.tsx`：全局浮窗，跨页面显示剩余时间与进度，可暂停/继续并跳转番茄页，常驻 Dashboard 右下角。
+- `store/pomodoroStore.ts`：番茄钟状态与动作（running/timeLeft/totalTime/sessionsCompleted），localStorage 持久化，供页面与浮窗共享。
 
 ---
 
