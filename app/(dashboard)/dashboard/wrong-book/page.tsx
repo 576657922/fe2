@@ -275,10 +275,24 @@ export default function WrongBookPage() {
             </p>
           </div>
 
-          {/* 错题数量统计 */}
-          <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/50 border border-gray-200 rounded-xl shadow-sm px-4 py-2.5">
-            <XCircle className="w-4 h-4 text-red-500" />
-            <span>错题总数 <strong className="text-red-600">{sortedQuestions.length}</strong></span>
+          {/* 右侧操作区 */}
+          <div className="flex items-center gap-3">
+            {/* 错题数量统计 */}
+            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/50 border border-gray-200 rounded-xl shadow-sm px-4 py-2.5">
+              <XCircle className="w-4 h-4 text-red-500" />
+              <span>错题总数 <strong className="text-red-600">{sortedQuestions.length}</strong></span>
+            </div>
+
+            {/* 开始复习按钮 */}
+            {sortedQuestions.length > 0 && (
+              <button
+                onClick={() => router.push("/dashboard/wrong-review")}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 transition-all hover:shadow-lg hover:shadow-red-200 active:scale-95 text-sm font-medium whitespace-nowrap"
+              >
+                <Play className="w-4 h-4" />
+                开始复习
+              </button>
+            )}
           </div>
         </header>
 

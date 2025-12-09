@@ -107,9 +107,13 @@ export default function DashboardPage() {
                 <p className="font-semibold text-blue-900">开始刷题</p>
                 <p className="text-sm text-blue-700">浏览题库并做题</p>
             </Link>
+            <Link href="/dashboard/wrong-review" className="block p-3 bg-red-50 hover:bg-red-100 rounded-lg text-left transition">
+                <p className="font-semibold text-red-900">错题复习</p>
+                <p className="text-sm text-red-700">专注复习错题，逐题攻克</p>
+            </Link>
             <Link href="/dashboard/wrong-book" className="block p-3 bg-orange-50 hover:bg-orange-100 rounded-lg text-left transition">
                 <p className="font-semibold text-orange-900">查看错题本</p>
-                <p className="text-sm text-orange-700">复习之前做错的题目</p>
+                <p className="text-sm text-orange-700">浏览所有错题列表</p>
             </Link>
             <Link href="/dashboard/pomodoro" className="block p-3 bg-green-50 hover:bg-green-100 rounded-lg text-left transition">
                 <p className="font-semibold text-green-900">开始番茄钟</p>

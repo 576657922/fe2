@@ -922,3 +922,163 @@ newStatus = "wrong_book";
 - ✅ 前端构建成功（`npm run build` 无错误）
 - ✅ 用户验证通过
 
+---
+
+### 步骤 3.4：创建错题复习模式
+- [x] 创建 wrong-review 路由和页面
+- [x] 获取用户所有 'wrong_book' 状态的题目
+- [x] 按"最近错的且复习次数少"排序
+- [x] 一道一道展示给用户
+- [x] 用户做完后自动加载下一道错题
+- [x] 提供"暂停复习"按钮
+- [x] 在错题本页面添加"开始复习"入口
+- [x] 在 Dashboard 首页添加快捷入口
+
+#### 步骤 3.4 验证完成 ✅
+- **验证日期**：2025年12月9日
+- **验证状态**：✅ 完成（用户测试通过）
+- **实现特性**：
+  - ✅ 创建了 `app/(dashboard)/dashboard/wrong-review/page.tsx` 页面
+  - ✅ 调用 `/api/wrong-questions` API 获取错题数据
+  - ✅ 智能排序逻辑：
+    - 优先按最近错误时间降序（最近的在前）
+    - 时间相同时按复习次数升序（复习少的在前）
+  - ✅ 完整的答题界面：
+    - 题干、选项、提交按钮
+    - 答题结果显示（正确/错误）
+    - 题目解析显示
+  - ✅ 自动跳转功能：
+    - 提交答案后 2 秒自动跳转下一题
+    - 所有题目完成后自动返回错题本
+  - ✅ 进度追踪：
+    - 顶部显示进度（例如 3/10）
+    - 进度条动画显示百分比
+  - ✅ 暂停复习：
+    - 顶部"暂停复习"按钮
+    - 点击返回错题本列表
+  - ✅ 多入口设计：
+    - 错题本页面：头部"开始复习"按钮（红色渐变）
+    - Dashboard 首页：快速开始卡片中的"错题复习"链接
+  - ✅ 三种状态处理：
+    - 加载中：显示加载动画
+    - 错误：显示错误提示和返回按钮
+    - 空状态：显示"太棒了！"提示和"开始刷题"按钮
+  - ✅ TypeScript 全部通过，`npm run build` 编译成功
+
+#### 实现细节
+- **文件**：`app/(dashboard)/dashboard/wrong-review/page.tsx` (约 450 行)
+- **数据流**：
+  1. 页面加载时获取 Supabase session token
+  2. 调用 `/api/wrong-questions` 获取所有错题
+  3. 前端排序：优先最近错误 → 复习次数少
+  4. 显示当前题目（索引从 0 开始）
+  5. 用户答题并提交（调用 `/api/answers`）
+  6. 显示结果和解析
+  7. 2 秒后 `currentIndex + 1`，显示下一题
+  8. 所有题目完成后返回错题本
+
+- **排序算法**：
+  ```typescript
+  const sorted = questions.sort((a, b) => {
+    // 优先按最近错误时间排序
+    const timeA = a.last_attempt_at ? new Date(a.last_attempt_at).getTime() : 0;
+    const timeB = b.last_attempt_at ? new Date(b.last_attempt_at).getTime() : 0;
+    if (timeB !== timeA) {
+      return timeB - timeA; // 最近的在前
+    }
+    // 时间相同时，按复习次数排序（少的在前）
+    return a.attempt_count - b.attempt_count;
+  });
+  ```
+
+- **进度计算**：
+  ```typescript
+  const progress = Math.round(((currentIndex + 1) / wrongQuestions.length) * 100);
+  // 例如：第 3 题，共 10 题 → (3/10) * 100 = 30%
+  ```
+
+- **自动跳转逻辑**：
+  ```typescript
+  // 提交答案成功后
+  setTimeout(() => {
+    if (currentIndex < wrongQuestions.length - 1) {
+      setCurrentIndex(currentIndex + 1); // 下一题
+      resetAnswerState();
+    } else {
+      router.push("/dashboard/wrong-book"); // 完成，返回
+    }
+  }, 2000);
+  ```
+
+#### UI/UX 设计
+- **顶部导航栏**：
+  - 左侧：暂停复习按钮（带 ArrowLeft 图标）
+  - 右侧：进度显示（3 / 10）
+  - 背景：白色卡片，阴影
+
+- **进度条**：
+  - 文字：复习进度 + 百分比
+  - 视觉：蓝紫渐变进度条，动画过渡
+
+- **题目卡片**：
+  - 头部：年份、类别、难度标签
+  - 题干：完整显示，支持换行
+  - 选项：四个按钮，选中高亮
+  - 结果：绿色（正确）/ 红色（错误）提示
+  - 解析：蓝色背景卡片
+
+- **自动跳转提示**：
+  - 答题后显示"正在加载下一题..."（带旋转图标）
+  - 2 秒倒计时
+
+#### 技术栈
+- **前端框架**：React 18 with Next.js 14（客户端组件）
+- **状态管理**：React hooks (useState, useCallback, useEffect)
+- **路由**：Next.js App Router
+- **API 调用**：fetch with Bearer Token
+- **样式**：TailwindCSS + Lucide React 图标
+- **类型检查**：TypeScript
+
+#### 关键设计决策
+
+**1. 为什么使用客户端排序而不是 API 排序？**
+- 错题数量通常不多（< 100）
+- 减少 API 复杂度
+- 前端可灵活调整排序策略
+- 避免增加服务器负担
+
+**2. 为什么 2 秒后自动跳转？**
+- 给用户足够时间查看结果
+- 不需要手动点击，减少操作
+- 符合"专注复习"的场景
+
+**3. 为什么区分"错题复习"和"查看错题本"？**
+- **错题复习**：沉浸式学习，逐题攻克
+- **查看错题本**：浏览式管理，批量操作
+- 满足不同使用场景
+
+**4. 为什么选择这个排序策略？**
+- **最近错误优先**：记忆曲线理论，刚错的题最需要复习
+- **复习次数少优先**：确保每道题都得到充分练习
+
+#### 验证测试结果
+- ✅ 进入错题复习模式，首先加载最近错的题目
+- ✅ 排序逻辑正确（最近错误 + 复习次数少）
+- ✅ 完成一道题后，2 秒自动加载下一道
+- ✅ "暂停复习"按钮能返回错题本列表
+- ✅ 进度条正确显示复习进度
+- ✅ 所有题目完成后自动返回错题本
+- ✅ 空状态显示正确（没有错题时）
+- ✅ Dashboard 首页和错题本页面的入口正常工作
+- ✅ 前端构建成功（`npm run build` 无错误）
+- ✅ 用户验证通过
+
+#### 文件清单
+
+**新增文件**：
+- `app/(dashboard)/dashboard/wrong-review/page.tsx` - 错题复习页面（450+ 行）
+
+**修改文件**：
+- `app/(dashboard)/dashboard/wrong-book/page.tsx` - 添加"开始复习"按钮
+- `app/(dashboard)/dashboard/page.tsx` - 添加"错题复习"快捷入口
+
