@@ -84,7 +84,15 @@ export default function BookmarksPage() {
           throw new Error(`获取书签失败: ${bookmarksError.message}`);
         }
 
-        setBookmarks(data || []);
+        const normalized =
+          (data || []).map((item) => ({
+            ...item,
+            questions: Array.isArray(item.questions)
+              ? item.questions[0] || null
+              : item.questions,
+          })) as BookmarkItem[];
+
+        setBookmarks(normalized);
       } catch (err) {
         setError(err instanceof Error ? err.message : "未知错误，请重试");
       } finally {
