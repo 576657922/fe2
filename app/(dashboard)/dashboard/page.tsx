@@ -13,13 +13,21 @@ import {
 import Link from "next/link";
 import { getLevelTitle } from "@/lib/utils";
 
+interface DailyStats {
+  today_questions: number;
+  today_accuracy: string;
+  today_pomodoros: number;
+  wrong_questions: number;
+}
+
 export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
         const { data: session } = await supabase.auth.getSession();
 
@@ -29,7 +37,8 @@ export default function DashboardPage() {
           return;
         }
 
-        const { data, error: dbError } = await supabase
+        // 获取用户 profile
+        const { data: profileData, error: dbError } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", session.session.user.id)
@@ -39,7 +48,24 @@ export default function DashboardPage() {
           console.error("Database error:", dbError);
           setError("加载个人信息失败");
         } else {
-          setProfile(data);
+          setProfile(profileData);
+        }
+
+        // 获取今日学习概览数据
+        const token = session.session.access_token;
+        const response = await fetch("/api/daily-stats", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setDailyStats(result.data);
+          }
+        } else {
+          console.error("Failed to fetch daily stats");
         }
       } catch (err) {
         console.error("Error:", err);
@@ -49,7 +75,7 @@ export default function DashboardPage() {
       }
     };
 
-    fetchProfile();
+    fetchData();
   }, []);
 
   if (isLoading) {
@@ -148,19 +174,27 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
               <p className="text-gray-500 text-sm">今日做题</p>
-              <p className="text-3xl font-bold">0</p>
+              <p className="text-3xl font-bold">
+                {dailyStats?.today_questions ?? 0}
+              </p>
             </div>
             <div>
               <p className="text-gray-500 text-sm">今日正确率</p>
-              <p className="text-3xl font-bold">-</p>
+              <p className="text-3xl font-bold">
+                {dailyStats?.today_accuracy ?? "-"}
+              </p>
             </div>
             <div>
               <p className="text-gray-500 text-sm">完成番茄</p>
-              <p className="text-3xl font-bold">0</p>
+              <p className="text-3xl font-bold">
+                {dailyStats?.today_pomodoros ?? 0}
+              </p>
             </div>
             <div>
               <p className="text-gray-500 text-sm">当前错题</p>
-              <p className="text-3xl font-bold">0</p>
+              <p className="text-3xl font-bold">
+                {dailyStats?.wrong_questions ?? 0}
+              </p>
             </div>
           </div>
         </CardContent>

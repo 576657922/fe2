@@ -31,6 +31,7 @@ export default function QuestionDetailPage() {
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastXpGained, setLastXpGained] = useState<number>(0);
+  const [consecutiveCorrect, setConsecutiveCorrect] = useState<number>(0);
   const [isNextLoading, setIsNextLoading] = useState(false);
 
   useEffect(() => {
@@ -204,6 +205,7 @@ export default function QuestionDetailPage() {
       setIsCorrect(correct);
       setIsSubmitted(true);
       setLastXpGained(result?.xp_gained ?? 0);
+      setConsecutiveCorrect(result?.current_streak ?? 0); // 使用全局连胜数
 
       if (result.level_up && result.new_level) {
         setLevelUpLevel(result.new_level);
@@ -337,7 +339,7 @@ export default function QuestionDetailPage() {
             isOpen={showSuccessModal}
             onClose={() => setShowSuccessModal(false)}
             score={lastXpGained || 10}
-            streak={0}
+            streak={consecutiveCorrect}
             message="解题思路清晰，继续保持！"
             onNext={handleGoNextQuestion}
           />

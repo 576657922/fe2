@@ -50,6 +50,7 @@ export default function YearRandomPage() {
   const [correctCount, setCorrectCount] = useState(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastXpGained, setLastXpGained] = useState(0);
+  const [consecutiveCorrect, setConsecutiveCorrect] = useState(0);
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
@@ -135,6 +136,7 @@ export default function YearRandomPage() {
       const json = await res.json();
       const correct = json.is_correct === true;
       setLastXpGained(json?.xp_gained ?? 0);
+      setConsecutiveCorrect(json?.current_streak ?? 0); // 使用全局连胜数
       if (json.level_up && json.new_level) {
         setLevelUpLevel(json.new_level);
       }
@@ -236,7 +238,7 @@ export default function YearRandomPage() {
           isOpen={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
           score={lastXpGained || 10}
-          streak={0}
+          streak={consecutiveCorrect}
           onNext={() => {
             setShowSuccessModal(false);
             handleNext();

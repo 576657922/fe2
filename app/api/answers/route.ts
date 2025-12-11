@@ -225,37 +225,98 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 第 5 步：更新 profiles 表的 xp（答对时）
+    // 第 5 步：更新 profiles 表的 xp、streak_days 和 current_streak
     let responseLevelUp = false;
     let responseLevel = undefined;
     let responseXp = undefined;
+    let responseStreakDays = undefined;
+    let responseCurrentStreak = 0;
 
-    if (isCorrect) {
-      const { data: profile, error: profileFetchError } = await supabase
-        .from("profiles")
-        .select("xp, level")
-        .eq("id", userId)
-        .single();
+    // 获取用户的 profile（包含 last_answer_date、streak_days 和 current_streak）
+    const { data: profile, error: profileFetchError } = await supabase
+      .from("profiles")
+      .select("xp, level, streak_days, last_answer_date, current_streak")
+      .eq("id", userId)
+      .single();
 
-      if (!profileFetchError && profile) {
-        const newXp = (profile.xp || 0) + xpGained;
-        const newLevel = calculateLevel(newXp);
-        responseLevelUp = newLevel > (profile.level || 1);
-        responseLevel = newLevel;
-        responseXp = newXp;
+    if (!profileFetchError && profile) {
+      // 计算新的 XP 和等级
+      const newXp = (profile.xp || 0) + xpGained;
+      const newLevel = calculateLevel(newXp);
+      responseLevelUp = newLevel > (profile.level || 1);
+      responseLevel = newLevel;
+      responseXp = newXp;
 
-        const { error: xpUpdateError } = await supabase
-          .from("profiles")
-          .update({
-            xp: newXp,
-            level: newLevel,
-          })
-          .eq("id", userId);
+      // 计算连续打卡天数
+      const today = new Date().toISOString().split('T')[0]; // 获取今天的日期 (YYYY-MM-DD)
+      const lastAnswerDate = profile.last_answer_date;
+      let newStreakDays = profile.streak_days || 0;
 
-        if (xpUpdateError) {
-          console.error("Error updating XP/level:", xpUpdateError);
-          // 不返回错误，XP 更新是辅助性的
+      // 如果今天首次答题
+      if (lastAnswerDate !== today) {
+        if (lastAnswerDate) {
+          // 计算日期差
+          const lastDate = new Date(lastAnswerDate);
+          const todayDate = new Date(today);
+          const diffTime = todayDate.getTime() - lastDate.getTime();
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+          if (diffDays === 1) {
+            // 连续打卡：昨天答题了，今天继续
+            newStreakDays += 1;
+          } else {
+            // 打卡中断：重新开始计数
+            newStreakDays = 1;
+          }
+        } else {
+          // 第一次答题
+          newStreakDays = 1;
         }
+
+        responseStreakDays = newStreakDays;
+      } else {
+        // 今天已经答过题了，不更新 streak_days
+        responseStreakDays = newStreakDays;
+      }
+
+      // 计算全局连胜数（当前连续答对了几道题）
+      let newCurrentStreak = profile.current_streak || 0;
+      if (isCorrect) {
+        // 答对：连胜数 +1
+        newCurrentStreak += 1;
+      } else {
+        // 答错：连胜数重置为 0
+        newCurrentStreak = 0;
+      }
+      responseCurrentStreak = newCurrentStreak;
+
+      // 更新 profiles 表
+      const updateData: {
+        xp: number;
+        level: number;
+        current_streak: number;
+        streak_days?: number;
+        last_answer_date?: string;
+      } = {
+        xp: newXp,
+        level: newLevel,
+        current_streak: newCurrentStreak, // 每次答题都更新全局连胜数
+      };
+
+      // 如果今天首次答题，更新 streak_days 和 last_answer_date
+      if (lastAnswerDate !== today) {
+        updateData.streak_days = newStreakDays;
+        updateData.last_answer_date = today;
+      }
+
+      const { error: profileUpdateError } = await supabase
+        .from("profiles")
+        .update(updateData)
+        .eq("id", userId);
+
+      if (profileUpdateError) {
+        console.error("Error updating profile:", profileUpdateError);
+        // 不返回错误，profile 更新是辅助性的
       }
     }
 
@@ -268,6 +329,9 @@ export async function POST(request: NextRequest) {
       level_up: responseLevelUp,
       new_level: responseLevel,
       new_xp: responseXp,
+      streak_days: responseStreakDays,
+      current_streak: responseCurrentStreak, // 全局连胜数（当前连续答对了几道题）
+      consecutive_correct_count: consecutiveCorrectCount, // 保留这个字段用于题目掌握度判断
       message: isCorrect ? "Answer is correct!" : "Answer is incorrect.",
     });
   } catch (error) {
