@@ -26,32 +26,21 @@ export default function QuestionsPage() {
     setError(null);
     try {
       // 使用 Promise.all 并行请求所有数据，比原来的串行请求更快
-      const [questionsRes, yearsRes, categoriesRes, userProgressRes] = await Promise.all([
-        // 获取所有题目
-        supabase
-          .from("questions")
-          .select("*")
-          .order("year", { ascending: false })
-          .order("question_number", { ascending: true }),
-        // 获取年份
-        supabase
-          .from("questions")
-          .select("year")
-          .order("year", { ascending: false }),
-        // 获取类别
-        supabase
-          .from("questions")
-          .select("category"),
-        // 获取用户做题记录
-        supabase
-          .from("user_progress")
-          .select("question_id"),
+      // 分段取数，避免 1000 条上限（每段 1000 条）
+      const fetchChunk = async (from: number, to: number) =>
+        supabase.from("questions").select("*").range(from, to);
+
+      const [chunk1, chunk2, chunk3, userProgressRes] = await Promise.all([
+        fetchChunk(0, 999),
+        fetchChunk(1000, 1999),
+        fetchChunk(2000, 2999),
+        supabase.from("user_progress").select("question_id"),
       ]);
 
-      // 检查核心数据错误
-      if (questionsRes.error) throw questionsRes.error;
-      if (yearsRes.error) throw yearsRes.error;
-      if (categoriesRes.error) throw categoriesRes.error;
+      const mergedQuestions = [chunk1.data, chunk2.data, chunk3.data].flat().filter(Boolean) as Question[];
+
+      const questionsError = chunk1.error || chunk2.error || chunk3.error;
+      if (questionsError) throw questionsError;
 
       // 用户进度获取失败记录警告，但不阻断页面显示
       if (userProgressRes.error) {
@@ -59,15 +48,37 @@ export default function QuestionsPage() {
       }
 
       // 处理数据
-      setQuestions(questionsRes.data || []);
-      
+      setQuestions(mergedQuestions);
+
+      // 从已获取的题目中提取年份和分类，确保完全一致
       const distinctYears = Array.from(
-        new Set(yearsRes.data?.map((y) => y.year) || [])
-      );
+        new Set(mergedQuestions.map((q) => q.year))
+      ).sort((a, b) => {
+        // 提取年份数字部分进行比较（如 "31_haru" -> 31, "07_haru" -> 7）
+        const yearA = parseInt(a.split('_')[0]);
+        const yearB = parseInt(b.split('_')[0]);
+
+        // 判断是令和年代（01-07）还是平成年代（13-31）
+        const isReiwaA = yearA >= 1 && yearA <= 7;
+        const isReiwaB = yearB >= 1 && yearB <= 7;
+
+        // 令和年代排在前面
+        if (isReiwaA && !isReiwaB) return -1;
+        if (!isReiwaA && isReiwaB) return 1;
+
+        // 同一年代内，按年份降序
+        if (yearA !== yearB) {
+          return yearB - yearA;
+        }
+
+        // 年份相同，按季节排序（haru春 > aki秋 > menjo）
+        return b.localeCompare(a);
+      });
+
       const distinctCategories = Array.from(
-        new Set(categoriesRes.data?.map((c) => c.category) || [])
-      );
-      
+        new Set(mergedQuestions.map((q) => q.category))
+      ).sort(); // 升序排列
+
       setYears(distinctYears);
       setCategories(distinctCategories);
 

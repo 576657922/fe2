@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Calendar, List, BrainCircuit, X } from "lucide-react";
+import { formatYearDisplay } from "@/lib/yearFormatter";
 
 interface QuestionListProps {
   initialQuestions: Question[];
@@ -97,10 +98,10 @@ export function QuestionList({
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Years</SelectItem>
+                <SelectItem value="all">全部年份</SelectItem>
                 {years.map((year) => (
                   <SelectItem key={year} value={year}>
-                    {year}
+                    {formatYearDisplay(year)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -114,7 +115,7 @@ export function QuestionList({
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="all">全部分类</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
@@ -131,10 +132,10 @@ export function QuestionList({
                 <SelectValue placeholder="Difficulty" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Difficulties</SelectItem>
-                <SelectItem value="easy">Easy</SelectItem>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="hard">Hard</SelectItem>
+                <SelectItem value="all">全部难度</SelectItem>
+                <SelectItem value="easy">简单</SelectItem>
+                <SelectItem value="normal">普通</SelectItem>
+                <SelectItem value="hard">困难</SelectItem>
               </SelectContent>
             </Select>
           </div>
